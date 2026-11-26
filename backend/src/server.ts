@@ -7,11 +7,30 @@ import path from "node:path";
 import crypto from "node:crypto";
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  ...(process.env.FRONTEND_URL
+    ? process.env.FRONTEND_URL.split(",").map((u) =>
+        u.trim().replace(/\/$/, ""),
+      )
+    : []),
+];
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin(origin, callback) {
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        origin.endsWith(".vercel.app")
+      ) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error("Origem não permitida pelo CORS"));
+    },
   }),
 );
 
@@ -28,7 +47,9 @@ interface StoredUser {
   passwordHash: string;
 }
 
-const DATA_DIR = path.resolve(process.cwd(), "data");
+const DATA_DIR = process.env.VERCEL
+  ? path.join("/tmp", "cerebro-data")
+  : path.resolve(process.cwd(), "data");
 const USERS_FILE = path.join(DATA_DIR, "users.json");
 const activeSessions = new Map<string, Omit<StoredUser, "passwordHash">>();
 
@@ -418,7 +439,6 @@ async function buildGtfsCache(): Promise<GtfsCache> {
 
       if (!tripId || !stopId || !stopsById.has(stopId)) continue;
 
-      // Índice espacial: quais linhas atendem cada parada
       const routeId = tripToRoute.get(tripId);
       if (routeId) {
         let routeSet = stopRouteIds.get(stopId);
@@ -429,7 +449,6 @@ async function buildGtfsCache(): Promise<GtfsCache> {
         routeSet.add(routeId);
       }
 
-      // Sequência de paradas para reconstrução de itinerário
       if (candidateTripIds.has(tripId)) {
         const sequence = Number(row.stop_sequence);
         if (Number.isFinite(sequence)) {
@@ -807,6 +826,13 @@ app.get("/api/geo/neighborhoods", async (_req, res) => {
   }
 });
 
+app.get("/", (_req, res) => {
+  res.json({
+    status: "online",
+    service: "Cérebro da Cidade API",
+  });
+});
+
 app.get("/api/health", (_req, res) => {
   res.json({
     status: "online",
@@ -966,6 +992,10 @@ Considere órgãos reais de Curitiba (SETRAN, URBS, Defesa Civil 199, SMOP, COPE
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`API executando em http://localhost:${PORT}`);
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`API executando em http://localhost:${PORT}`);
+  });
+}
+
+export default app;
