@@ -1,0 +1,25 @@
+{
+  "name": "cerebro-da-cidade-backend",
+  "version": "1.0.0",
+  "description": "API do Cérebro da Cidade",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch --env-file=.env src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "fflate": "^0.8.2",
+    "papaparse": "^5.5.3"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.0.0",
+    "@types/papaparse": "^5.3.16",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.3"
+  }
+}

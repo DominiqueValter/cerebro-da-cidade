@@ -1,0 +1,212 @@
+/* ============================================================
+   VARIABLES.CSS
+   ------------------------------------------------------------
+   Responsabilidade:
+   - Paleta institucional (Cérebro da Cidade · Curitiba)
+   - Variáveis de tema (Claro, Escuro e Alto Contraste)
+   - Escala tipográfica, espaçamentos e sombras
+   ============================================================ */
+
+@theme {
+  --color-city-950: #173d35;
+  --color-city-900: #244b40;
+  --color-city-800: #315c45;
+  --color-city-700: #587c69;
+  --color-city-500: #829b87;
+  --color-city-100: #dfe9df;
+
+  --color-surface: #ffffff;
+  --color-background: #f2f4f2;
+  --color-border: #dfe5df;
+
+  --color-text-primary: #1c2c27;
+  --color-text-secondary: #5e706a;
+
+  --color-alert: #d97745;
+  --color-danger: #b94b45;
+  --color-warning: #d5a348;
+  --color-success: #587c69;
+
+  --font-sans: "Rethink Sans", "Inter", sans-serif;
+  --radius-card: 16px;
+}
+
+:root {
+  /* Tipografia */
+  --font-principal:
+    "Rethink Sans", "Inter", system-ui, -apple-system, sans-serif;
+  --spacing: 0.01em;
+  --line-height-base: 1.55;
+
+  --h1-font-size: 1.65rem;
+  --h2-font-size: 1.15rem;
+  --h3-font-size: 0.95rem;
+  --h4-font-size: 0.875rem;
+  --h5-font-size: 0.8125rem;
+  --h6-font-size: 0.75rem;
+  --p-font-size: 0.8125rem;
+  --label-font-size: 0.75rem;
+  --span-font-size: inherit;
+  --small-font-size: 0.7rem;
+  --div-font-size: 0.78rem;
+
+  /* Cores Institucionais */
+  --darkBlue: #1d4e89;
+  --darkBlue-transparent: rgba(29, 78, 137, 0.11);
+  --indigo: #3b5998;
+  --caribean: #1d7874;
+  --darkGreen: #173d35;
+  --green: #2d6a58;
+  --red: #c92a49;
+  --white: #ffffff;
+  --black: #0e1412;
+
+  /* Superfícies & Bordas (Tema Claro) */
+  --gray: #f2f4f2;
+  --darkGray: #b8c2bc;
+  --wrapper: #ffffff;
+  --surface-subtle: #fafbf9;
+  --surface-soft: #f5f7f4;
+  --surface-active: #edf3ed;
+  --border-color: #dfe5df;
+  --border-light: #e4e9e3;
+  --border-soft: #edf1ed;
+
+  /* Textos */
+  --defaultFontColor: #1c2c27;
+  --heading-color: #173d35;
+  --text-muted: #5e706a;
+  --text-sub-color: #4b5d57;
+  --text-light: #8a948d;
+  --text-medium: #46574f;
+  --invertedFontColor: #ffffff;
+
+  /* Interação & Foco */
+  --link-color: #1d4e89;
+  --link-color-hover: #143863;
+  --hover-medium: #eef3ef;
+  --focusBorda: #1d4e89;
+
+  /* Header */
+  --header-bg: rgba(255, 255, 255, 0.96);
+  --header-shadow: 0 2px 10px rgba(17, 36, 30, 0.06);
+  --header-icon: #244b40;
+  --header-icon-hover: #eef3ef;
+  --header-bg-hover: #f2f6f3;
+  --header-text: #183028;
+  --header-role: #647670;
+  --avatar-tamanho: 36px;
+  --avatar-bg: #1d4e89;
+  --avatar-text: #ffffff;
+
+  /* Sidebar */
+  --sidebar-tmanho: 248px;
+  --sidebar-bg: #ffffff;
+  --sidebar-shadow: 2px 0 12px rgba(17, 36, 30, 0.04);
+  --sidebar-link-text: #5f6d66;
+  --sidebar-link-hover: #f4f7f3;
+  --sidebar-link-active-bg: #edf3ed;
+  --sidebar-active-color: #173d35;
+
+  /* Dropdowns & Sombras */
+  --dropdown-bg: #ffffff;
+  --dropdown-item-text: #1c2c27;
+  --dropdown-item-hover: #f2f6f4;
+  --dropdown-shadow: 0 12px 28px rgba(16, 32, 27, 0.14);
+  --shadow-md: 0 4px 12px rgba(17, 36, 30, 0.08);
+  --shadow-lg: 0 12px 30px rgba(17, 36, 30, 0.1);
+
+  /* Login */
+  --borderLogin: #244b40;
+  --overlay-login: rgba(16, 38, 32, 0.72);
+}
+
+/* ============================================================
+   MODO ESCURO (html.dark-mode)
+   ============================================================ */
+html.dark-mode {
+  --gray: #0e1412;
+  --darkGray: #32433d;
+  --wrapper: #161f1c;
+  --surface-subtle: #1b2622;
+  --surface-soft: #202d28;
+  --surface-active: #23352f;
+  --border-color: #273631;
+  --border-light: #26342f;
+  --border-soft: #202d28;
+
+  --defaultFontColor: #e8efec;
+  --heading-color: #f1f6f3;
+  --text-muted: #98aba4;
+  --text-sub-color: #b5c5bf;
+  --text-light: #899b94;
+  --text-medium: #cbd7d2;
+
+  --darkBlue: #56a8ff;
+  --darkBlue-transparent: rgba(86, 168, 255, 0.16);
+  --link-color: #6ab4ff;
+  --link-color-hover: #97cbff;
+  --hover-medium: #22302b;
+  --focusBorda: #56a8ff;
+
+  --header-bg: rgba(22, 31, 28, 0.96);
+  --header-shadow: 0 2px 14px rgba(0, 0, 0, 0.45);
+  --header-icon: #dbe7e2;
+  --header-icon-hover: #212e2a;
+  --header-bg-hover: #1e2a26;
+  --header-text: #f0f6f3;
+  --header-role: #98aba4;
+
+  --sidebar-bg: #141d1a;
+  --sidebar-shadow: 2px 0 14px rgba(0, 0, 0, 0.4);
+  --sidebar-link-text: #9eb0a9;
+  --sidebar-link-hover: #1d2925;
+  --sidebar-link-active-bg: #22342e;
+  --sidebar-active-color: #ffffff;
+
+  --dropdown-bg: #192420;
+  --dropdown-item-text: #e8efec;
+  --dropdown-item-hover: #22302b;
+  --dropdown-shadow: 0 14px 32px rgba(0, 0, 0, 0.55);
+}
+
+/* ============================================================
+   ALTO CONTRASTE (html.high-contrast)
+   ============================================================ */
+html.high-contrast {
+  --gray: #000000;
+  --darkGray: #ffd60a;
+  --wrapper: #0a0a0a;
+  --surface-subtle: #111111;
+  --surface-soft: #161616;
+  --surface-active: #222200;
+  --border-color: #ffd60a;
+  --border-light: #ffd60a;
+  --border-soft: #ffd60a;
+
+  --defaultFontColor: #ffffff;
+  --heading-color: #ffd60a;
+  --text-muted: #ffe869;
+  --text-sub-color: #ffffff;
+  --text-light: #ffe869;
+  --text-medium: #ffffff;
+
+  --darkBlue: #ffd60a;
+  --darkBlue-transparent: rgba(255, 214, 10, 0.2);
+  --link-color: #ffd60a;
+  --link-color-hover: #ffffff;
+  --focusBorda: #ffd60a;
+
+  --header-bg: #000000;
+  --header-icon: #ffd60a;
+  --header-text: #ffffff;
+  --header-role: #ffd60a;
+
+  --sidebar-bg: #000000;
+  --sidebar-link-text: #ffffff;
+  --sidebar-link-active-bg: #262200;
+  --sidebar-active-color: #ffd60a;
+
+  --dropdown-bg: #000000;
+  --dropdown-item-text: #ffffff;
+}

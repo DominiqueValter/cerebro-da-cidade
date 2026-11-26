@@ -1,0 +1,245 @@
+/* ============================================================
+   BASE.CSS
+   ------------------------------------------------------------
+   Responsabilidade:
+   - Reset global
+   - Fontes (Inter, Rethink Sans, Lexend, OpenDyslexic)
+   - Tipografia e hierarquia de títulos/textos
+   - Foco, acessibilidade e scrollbars globais
+   ============================================================ */
+
+@font-face {
+  font-family: "OpenDyslexic";
+  src: url("../font/OpenDyslexic-Regular.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "OpenDyslexic";
+  src: url("../font/OpenDyslexic-Bold.otf") format("opentype");
+  font-weight: bold;
+  font-style: normal;
+}
+
+/* ============================================================
+   RESET GLOBAL
+   ============================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+html {
+  position: relative;
+  overflow-x: hidden;
+  background-color: var(--gray);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scrollbar-width: thin;
+  scrollbar-color: var(--darkGray) var(--gray);
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: var(--gray);
+  color: var(--defaultFontColor);
+  font-family: var(--font-principal);
+  font-size: var(--p-font-size);
+  line-height: var(--line-height-base);
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+ul,
+ol {
+  margin-top: 0;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* ============================================================
+   TIPOGRAFIA & LINKS
+   ============================================================ */
+
+h1 {
+  font-size: var(--h1-font-size);
+  color: var(--heading-color);
+  letter-spacing: var(--spacing);
+}
+
+h2 {
+  font-size: var(--h2-font-size);
+  color: var(--heading-color);
+  letter-spacing: var(--spacing);
+}
+
+h3,
+h4,
+h5,
+h6 {
+  color: var(--heading-color);
+  letter-spacing: var(--spacing);
+}
+
+p {
+  font-size: var(--p-font-size);
+  color: var(--text-sub-color);
+}
+
+a {
+  color: var(--link-color);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--link-color-hover);
+}
+
+a.disabled {
+  pointer-events: none;
+  filter: brightness(80%);
+}
+
+/* ============================================================
+   FOCO, ACESSIBILIDADE & MODOS DE LEITURA
+   ============================================================ */
+
+:focus-visible {
+  outline: 2px solid var(--focusBorda);
+  outline-offset: 2px;
+}
+
+html.font-lexend,
+html.font-lexend * {
+  font-family: "Lexend", sans-serif !important;
+}
+
+html.font-dyslexic,
+html.font-dyslexic * {
+  font-family: "OpenDyslexic", "Lexend", sans-serif !important;
+  letter-spacing: 0.03em;
+}
+
+.invertedFontColor,
+.invertedFontColor p,
+.invertedFontColor h1,
+.invertedFontColor h2,
+.invertedFontColor h3,
+.invertedFontColor label {
+  color: var(--invertedFontColor) !important;
+}
+
+.textPrimary {
+  color: var(--darkBlue);
+}
+
+.textIndigo {
+  color: var(--indigo);
+}
+
+.textCaribean {
+  color: var(--caribean);
+}
+
+.textRed {
+  color: var(--red);
+}
+
+.textGreen {
+  color: var(--green);
+}
+
+/* ============================================================
+   SCROLLBARS GLOBAIS
+   ============================================================ */
+
+body::-webkit-scrollbar,
+html::-webkit-scrollbar {
+  width: 10px;
+}
+
+body::-webkit-scrollbar-track,
+html::-webkit-scrollbar-track {
+  background: var(--gray);
+}
+
+body::-webkit-scrollbar-thumb,
+html::-webkit-scrollbar-thumb {
+  background: var(--darkGray);
+  border-radius: 999px;
+  border: 2px solid var(--gray);
+}
+
+body::-webkit-scrollbar-thumb:hover,
+html::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+.wrapper,
+.borderWrapper,
+.smart-routes-list,
+.smart-events-items,
+.notification-list,
+.risk-table-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--darkGray) transparent;
+}
+
+.wrapper::-webkit-scrollbar,
+.borderWrapper::-webkit-scrollbar,
+.smart-routes-list::-webkit-scrollbar,
+.smart-events-items::-webkit-scrollbar,
+.notification-list::-webkit-scrollbar,
+.risk-table-scroll::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.wrapper::-webkit-scrollbar-thumb,
+.borderWrapper::-webkit-scrollbar-thumb,
+.smart-routes-list::-webkit-scrollbar-thumb,
+.smart-events-items::-webkit-scrollbar-thumb,
+.notification-list::-webkit-scrollbar-thumb,
+.risk-table-scroll::-webkit-scrollbar-thumb {
+  background: var(--darkGray);
+  border-radius: 999px;
+}
+
+html.high-contrast,
+html.high-contrast * {
+  scrollbar-color: var(--focusBorda) transparent;
+}
