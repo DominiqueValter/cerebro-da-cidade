@@ -2444,3 +2444,1329 @@
     justify-content: space-between;
   }
 }
+
+/* Nivelamento e espaçamento uniforme dos cards de métricas */
+.overview .metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.overview .metric-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.overview .metric-card:hover {
+  transform: translateY(-2px);
+}
+
+.overview .custom-card-footer {
+  margin-top: auto;
+  padding-top: 0.75rem;
+}
+
+/* Botões clicáveis dentro do card de Alertas Ativos */
+.alerts-summary-btn {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 10px;
+  padding: 0.45rem 0.5rem;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.alerts-summary-btn:hover {
+  background-color: rgba(36, 75, 64, 0.06);
+}
+
+.alerts-summary-btn.is-selected {
+  background-color: rgba(36, 75, 64, 0.1);
+  border-color: rgba(36, 75, 64, 0.28);
+}
+
+/* Proporção assimétrica: Mapa em destaque + Alertas alinhados */
+.overview .main-dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(320px, 1fr);
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+.overview .map-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.overview .map-panel .map-container {
+  flex: 1;
+  min-height: 410px;
+}
+
+.overview .alerts-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Pílulas de filtro rápido na coluna de alertas */
+.alerts-filter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.85rem;
+}
+
+.alert-pill {
+  appearance: none;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+  background: transparent;
+  color: inherit;
+  font-size: 0.74rem;
+  font-weight: 500;
+  padding: 0.28rem 0.62rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.alert-pill:hover {
+  border-color: #244b40;
+}
+
+.alert-pill.active {
+  background-color: #244b40;
+  border-color: #244b40;
+  color: #ffffff;
+}
+
+.overview .alerts-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 0.2rem;
+}
+
+.alert-coords {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.overview .alerts-footer {
+  margin-top: 0.85rem;
+}
+
+/* Responsividade */
+@media (max-width: 1280px) {
+  .overview .metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1024px) {
+  .overview .main-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .overview .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Layout principal do Mapa Inteligente */
+.smart-map-page .smart-map-layout {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.smart-map-page .smart-map-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.smart-map-page .smart-map-main-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+/* Botão de limpar filtros */
+.smart-clear-filters-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.12));
+  background: transparent;
+  color: inherit;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.smart-clear-filters-btn:hover {
+  border-color: #244b40;
+  color: #244b40;
+}
+
+/* Lista de itinerários com altura controlada */
+.smart-map-page .smart-routes-list {
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 0.2rem;
+}
+
+/* Abas do card ambiental (Chuva 6h / Qualidade do ar) */
+.smart-env-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(0, 0, 0, 0.04);
+  padding: 0.2rem;
+  border-radius: 8px;
+}
+
+.smart-env-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.32rem 0.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0.72;
+  transition:
+    background-color 0.16s ease,
+    opacity 0.16s ease;
+}
+
+.smart-env-tab.active {
+  background: var(--surface-card, #ffffff);
+  opacity: 1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Altura dominante e responsiva do canvas do mapa */
+.smart-map-page .smart-map-canvas {
+  position: relative;
+  height: clamp(460px, 60vh, 660px);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.smart-map-page .smart-map-canvas .city-map {
+  width: 100%;
+  height: 100%;
+}
+
+/* Grade em 2 colunas para as ocorrências sincronizadas abaixo do mapa */
+.smart-map-occurrences-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 0.75rem;
+}
+
+.smart-map-occurrences-grid .occurrence-row-card {
+  height: 100%;
+  margin: 0;
+}
+
+@media (max-width: 1120px) {
+  .smart-map-page .smart-map-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .smart-map-page .smart-map-canvas {
+    height: 440px;
+  }
+}
+
+/* Cabeçalho do card ambiental sem quebra de linha */
+.smart-env-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.smart-env-tab,
+.smart-nowrap {
+  white-space: nowrap;
+}
+
+.smart-env-tab {
+  font-size: 0.74rem;
+  padding: 0.3rem 0.52rem;
+}
+
+.smart-rain-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+/* Blocos de Acumulado (5 dias) e Probabilidade hoje */
+.smart-rain-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.smart-rain-stat-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: 10px;
+  background: rgba(36, 75, 64, 0.04);
+  border: 1px solid rgba(36, 75, 64, 0.08);
+}
+
+.smart-rain-stat-box span {
+  font-size: 0.72rem;
+  opacity: 0.75;
+  line-height: 1.25;
+}
+
+.smart-rain-stat-box strong {
+  font-size: 0.98rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Histórico dos últimos 5 dias alinhado em 3 colunas (data | barra | mm) */
+.smart-rain-history-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+}
+
+.smart-rain-history {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.smart-rain-day {
+  display: grid;
+  grid-template-columns: 44px 1fr 64px;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.32rem 0.5rem;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.025);
+  font-size: 0.78rem;
+}
+
+.smart-rain-day-date {
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+
+.smart-rain-day-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(40, 124, 181, 0.14);
+  overflow: hidden;
+}
+
+.smart-rain-day-track span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #287cb5;
+  transition: width 0.25s ease;
+}
+
+.smart-rain-day-value {
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* KPIs clicáveis como filtro rápido em Ocorrências */
+.occurrences-page .occurrences-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.occurrence-kpi-btn {
+  appearance: none;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  transition:
+    transform 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.occurrence-kpi-btn:hover {
+  transform: translateY(-2px);
+  border-color: rgba(36, 75, 64, 0.35);
+}
+
+.occurrence-kpi-btn.is-active {
+  border-color: #244b40;
+  box-shadow: 0 0 0 2px rgba(36, 75, 64, 0.16);
+}
+
+/* Painel do Assistente Operacional IA */
+.ai-advisor-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ai-advisor-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.75rem 0.25rem;
+  font-size: 0.86rem;
+  opacity: 0.82;
+}
+
+.ai-advisor-summary-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 10px;
+  background: rgba(36, 75, 64, 0.05);
+  border: 1px solid rgba(36, 75, 64, 0.12);
+  margin-bottom: 0.9rem;
+}
+
+.ai-advisor-summary-box .ai-advisor-summary {
+  margin: 0;
+  flex: 1;
+  min-width: 240px;
+}
+
+.ai-advisor-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.ai-window-badge,
+.ai-gtfs-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.28rem 0.6rem;
+  border-radius: 999px;
+  background: var(--surface-card, #ffffff);
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+}
+
+.ai-advisor-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.ai-advisor-card {
+  padding: 0.8rem 0.9rem;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+}
+
+.ai-advisor-card h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.ai-advisor-card ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.ai-affected-routes-strip {
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.76rem;
+}
+
+.ai-routes-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.ai-route-chip {
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: rgba(36, 75, 64, 0.08);
+  color: #244b40;
+}
+
+/* Faixa de severidade na borda esquerda dos cards de ocorrência */
+.occurrences-page .occurrence-row-card.high {
+  border-left: 3px solid #e12d53;
+}
+
+.occurrences-page .occurrence-row-card.medium {
+  border-left: 3px solid #e3962d;
+}
+
+.occurrences-page .occurrence-row-card.low {
+  border-left: 3px solid #4e7861;
+}
+
+@media (max-width: 1120px) {
+  .occurrences-page .occurrences-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ai-advisor-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .occurrences-page .occurrences-kpis {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Grade uniforme dos corredores estruturais */
+.mobility-page .mobility-corridors-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 0.9rem;
+}
+
+.mobility-page .mobility-corridor-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  height: 100%;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.mobility-page .mobility-corridor-card:hover {
+  transform: translateY(-2px);
+}
+
+.mobility-page .mobility-corridor-card.critical {
+  border-left: 3px solid #e12d53;
+}
+
+.mobility-page .mobility-corridor-card.moderate {
+  border-left: 3px solid #e3962d;
+}
+
+.mobility-page .mobility-corridor-card.normal {
+  border-left: 3px solid #4e7861;
+}
+
+/* Barra visual de velocidade atual vs. referência */
+.mobility-speed-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.025);
+}
+
+.mobility-speed-block .mobility-speed-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+}
+
+.mobility-speed-block .mobility-speed-row span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.mobility-speed-block .mobility-speed-row small {
+  opacity: 0.72;
+  font-variant-numeric: tabular-nums;
+}
+
+.mobility-speed-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.mobility-speed-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.28s ease;
+}
+
+.mobility-page .mobility-corridor-footer {
+  margin-top: auto;
+  padding-top: 0.35rem;
+}
+
+/* Contador GTFS no cabeçalho de cada ocorrência prioritária */
+.mobility-gtfs-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.mobility-gtfs-count-badge {
+  font-size: 0.73rem;
+  font-weight: 600;
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(36, 75, 64, 0.08);
+  color: #244b40;
+}
+
+/* Busca rápida e cabeçalho fixo na matriz dos 75 bairros */
+.risk-table-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.12));
+  background: var(--surface-card, #ffffff);
+  font-size: 0.8rem;
+}
+
+.risk-table-search input {
+  border: none;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  width: 135px;
+  font-size: 0.8rem;
+}
+
+.risk-table-search button {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  opacity: 0.65;
+}
+
+.risk-matrix-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surface-card, #ffffff);
+}
+
+.risk-region-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
+  color: inherit;
+}
+
+.risk-region-btn:hover strong {
+  color: #244b40;
+  text-decoration: underline;
+}
+
+.risk-matrix-table tbody tr.is-selected-row {
+  background-color: rgba(36, 75, 64, 0.06);
+}
+
+/* Layout em 2 colunas com sidebar fixa no Portal do Cidadão */
+.citizen-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.85fr) minmax(300px, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.citizen-main-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.citizen-sidebar {
+  position: sticky;
+  top: 1.25rem;
+}
+
+.citizen-sidebar-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.citizen-sidebar-sublabel {
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.72;
+  margin-bottom: 0.55rem;
+}
+
+.citizen-sidebar-empty {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  opacity: 0.78;
+}
+
+.citizen-alerts-divider {
+  height: 1px;
+  background: var(--border-color, rgba(0, 0, 0, 0.08));
+}
+
+/* Chips interativos dos bairros salvos na sidebar */
+.citizen-saved-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.citizen-saved-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.12));
+  background: rgba(36, 75, 64, 0.06);
+  overflow: hidden;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.citizen-saved-pill.is-viewing {
+  border-color: #244b40;
+  background: rgba(36, 75, 64, 0.14);
+}
+
+.citizen-saved-pill-select {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.32rem 0.55rem 0.32rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.citizen-saved-pill-remove {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.32rem 0.55rem 0.32rem 0.2rem;
+  cursor: pointer;
+  opacity: 0.65;
+}
+
+.citizen-saved-pill-remove:hover {
+  opacity: 1;
+}
+
+/* Barra visual de risco de alagamento e clima compacto */
+.citizen-risk-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  margin: 0.45rem 0;
+}
+
+.citizen-risk-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+
+.citizen-weather-mini-row {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.03);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.citizen-weather-mini-row span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Botão de inverter origem/destino */
+.citizen-swap-btn {
+  appearance: none;
+  align-self: end;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.14));
+  background: var(--surface-card, #ffffff);
+  color: #244b40;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease;
+}
+
+.citizen-swap-btn:hover {
+  background: rgba(36, 75, 64, 0.08);
+  transform: scale(1.04);
+}
+
+/* Banners de alerta compactos na sidebar */
+.citizen-alert-banner-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.2rem;
+}
+
+.citizen-alert-condition {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+@media (max-width: 1024px) {
+  .citizen-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .citizen-sidebar {
+    position: static;
+  }
+}
+
+/* =========================================================
+   PORTAL DO CIDADÃO (LAYOUT LIMPO COM SIDEBAR)
+   ========================================================= */
+.cp-page {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 1.5rem 2rem 2.5rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.cp-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.75fr) minmax(320px, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.cp-main,
+.cp-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.cp-sidebar {
+  position: sticky;
+  top: 1.25rem;
+}
+
+.cp-panel,
+.cp-sidebar-panel {
+  padding: 1.35rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Card 1: Condição do Bairro */
+.cp-condition-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.cp-risk-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 1.05rem 1.15rem;
+  border-radius: 14px;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+  background: rgba(78, 120, 97, 0.06);
+}
+
+.cp-risk-card.medium {
+  background: rgba(227, 150, 45, 0.08);
+  border-color: rgba(227, 150, 45, 0.25);
+}
+
+.cp-risk-card.high {
+  background: rgba(225, 45, 83, 0.08);
+  border-color: rgba(225, 45, 83, 0.25);
+}
+
+.cp-risk-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.cp-risk-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.cp-risk-card strong {
+  font-size: 1.08rem;
+  line-height: 1.3;
+}
+
+.cp-risk-card p {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  opacity: 0.85;
+}
+
+.cp-metrics-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.cp-metric-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.025);
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+}
+
+.cp-metric-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.76rem;
+  opacity: 0.78;
+}
+
+.cp-metric-box strong {
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+
+.cp-metric-box small {
+  font-size: 0.74rem;
+  opacity: 0.75;
+  line-height: 1.35;
+}
+
+/* Card 2: Verificador de Rota */
+.cp-route-inputs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.cp-swap-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.14));
+  background: var(--surface-card, #ffffff);
+  color: #244b40;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.cp-swap-btn:hover {
+  background: rgba(36, 75, 64, 0.08);
+  transform: scale(1.04);
+}
+
+.cp-route-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1rem 1.1rem;
+  border-radius: 14px;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+  background: rgba(78, 120, 97, 0.06);
+}
+
+.cp-route-banner.medium {
+  background: rgba(227, 150, 45, 0.07);
+  border-color: rgba(227, 150, 45, 0.25);
+}
+
+.cp-route-banner.high {
+  background: rgba(225, 45, 83, 0.07);
+  border-color: rgba(225, 45, 83, 0.25);
+}
+
+.cp-route-banner-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.94rem;
+}
+
+.cp-route-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.cp-route-item {
+  padding: 0.65rem 0.8rem;
+  border-radius: 10px;
+  background: var(--surface-card, #ffffff);
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+}
+
+.cp-route-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.81rem;
+  margin-bottom: 0.25rem;
+}
+
+.cp-route-item p {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  opacity: 0.82;
+}
+
+.cp-route-clean {
+  margin: 0;
+  font-size: 0.82rem;
+  opacity: 0.85;
+}
+
+.cp-gtfs-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.cp-gtfs-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+/* Sidebar Direita: Meus Alertas */
+.cp-sidebar-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.cp-sidebar-head h2 {
+  margin: 0.15rem 0 0;
+  font-size: 1.05rem;
+}
+
+.cp-section-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.68;
+  margin-bottom: 0.5rem;
+}
+
+.cp-saved-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.cp-saved-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.14));
+  background: rgba(36, 75, 64, 0.05);
+  overflow: hidden;
+}
+
+.cp-saved-pill.active {
+  border-color: #244b40;
+  background: rgba(36, 75, 64, 0.14);
+}
+
+.cp-saved-pill-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.32rem 0.55rem 0.32rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cp-saved-pill-remove {
+  appearance: none;
+  border: none;
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
+  background: transparent;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.32rem 0.5rem;
+  cursor: pointer;
+  opacity: 0.65;
+}
+
+.cp-saved-pill-remove:hover {
+  opacity: 1;
+  color: #e12d53;
+}
+
+.cp-divider {
+  height: 1px;
+  background: var(--border-color, rgba(0, 0, 0, 0.08));
+}
+
+.cp-alerts-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  max-height: 410px;
+  overflow-y: auto;
+  padding-right: 0.2rem;
+}
+
+/* Card individual de alerta sempre em coluna única e bem espaçada */
+.cp-alert-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.025);
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+  border-left: 3px solid #4e7861;
+}
+
+.cp-alert-card.medium {
+  border-left-color: #e3962d;
+}
+
+.cp-alert-card.high {
+  border-left-color: #e12d53;
+  background: rgba(225, 45, 83, 0.04);
+}
+
+.cp-alert-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.cp-alert-card-top strong {
+  font-size: 0.85rem;
+}
+
+.cp-alert-card-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #244b40;
+}
+
+.cp-alert-card p {
+  margin: 0;
+  font-size: 0.76rem;
+  line-height: 1.4;
+  opacity: 0.8;
+}
+
+.cp-all-clear,
+.cp-empty-note {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  opacity: 0.78;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  background: rgba(78, 120, 97, 0.07);
+}
+
+/* Telefones úteis */
+.cp-emergency-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cp-emergency-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.77rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.025);
+}
+
+.cp-emergency-list strong {
+  min-width: 38px;
+  text-align: center;
+  padding: 0.2rem 0.35rem;
+  border-radius: 6px;
+  background: rgba(36, 75, 64, 0.12);
+  color: #244b40;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 1080px) {
+  .cp-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cp-sidebar {
+    position: static;
+  }
+}
+
+@media (max-width: 720px) {
+  .cp-condition-grid,
+  .cp-route-inputs {
+    grid-template-columns: 1fr;
+  }
+
+  .cp-swap-btn {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 768px) {
+  .cp-page {
+    padding: 1rem;
+  }
+
+  .cp-panel,
+  .cp-sidebar-panel {
+    padding: 1rem 1.1rem;
+  }
+}

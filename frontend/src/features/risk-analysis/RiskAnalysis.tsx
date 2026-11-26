@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Bus,
   CarFront,
@@ -7,10 +7,13 @@ import {
   Download,
   Droplets,
   MapPin,
+  RotateCcw,
+  Search,
   Sparkles,
   Thermometer,
   Waves,
   Wind,
+  X,
 } from "lucide-react";
 
 import { urbanEvents } from "../overview/data/urbanEvents";
@@ -51,6 +54,8 @@ type RiskScenarioId =
   | "evening-storm"
   | "saturated-soil"
   | "center-blockade";
+
+type ClimateTab = "climogram" | "koppen";
 
 interface RegionalRiskRow {
   neighborhood: string;
@@ -115,10 +120,10 @@ const CURITIBA_CLIMOGRAM = [
 
 // Pesos empíricos baseados no estudo ENAU/ABRHidro (204 ocorrências 2020–2024)
 const HISTORICAL_TIER_BONUS: Record<HistoricalFloodTier, number> = {
-  critical: 16, // 15–19 registros (CIC, Tatuquara)
-  high: 11, // 10–15 registros (Centro, Boqueirão)
-  moderate: 6, // 5–10 registros (Novo Mundo, Pinheirinho, Xaxim, Água Verde, Rebouças)
-  low: 0, // 0–5 registros
+  critical: 16,
+  high: 11,
+  moderate: 6,
+  low: 0,
 };
 
 const HISTORICAL_TIER_LABELS: Record<HistoricalFloodTier, string> = {
@@ -164,17 +169,21 @@ function formatShortDate(isoDate: string): string {
 }
 
 export function RiskAnalysis({ onOpenInMap }: RiskAnalysisProps) {
+  const explorerRef = useRef<HTMLElement | null>(null);
+
   const [weather, setWeather] = useState<CurrentWeather | null>(null);
   const [precipContext, setPrecipContext] =
     useState<PrecipitationContext | null>(null);
   const [airQuality, setAirQuality] = useState<AirQualityData | null>(null);
 
   const [scenario, setScenario] = useState<RiskScenarioId>("realtime");
+  const [climateTab, setClimateTab] = useState<ClimateTab>("climogram");
   const [levelFilter, setLevelFilter] = useState<
     "all" | "high" | "medium" | "low"
   >("all");
   const [regionalFilter, setRegionalFilter] = useState<string>("all");
   const [watershedFilter, setWatershedFilter] = useState<string>("all");
+  const [tableSearch, setTableSearch] = useState<string>("");
   const [exportedFeedback, setExportedFeedback] = useState(false);
 
   // Bairro selecionado pelo usuário entre os 75 oficiais
@@ -191,7 +200,6 @@ export function RiskAnalysis({ onOpenInMap }: RiskAnalysisProps) {
   const [transitLoading, setTransitLoading] = useState(false);
 
   const currentMonthIndex = new Date().getMonth();
-  // Meses críticos de primavera/verão apontados no estudo ENAU (Nov, Dez, Jan, Mar)
   const isConvectiveSeason = [0, 2, 10, 11].includes(currentMonthIndex);
 
   useEffect(() => {
@@ -227,7 +235,6 @@ export function RiskAnalysis({ onOpenInMap }: RiskAnalysisProps) {
     [selectedRegionName],
   );
 
-  // Busca meteorologia e umidade do solo específicas do bairro escolhido
   useEffect(() => {
     let cancelled = false;
     setRegionalLoading(true);
@@ -286,7 +293,6 @@ export function RiskAnalysis({ onOpenInMap }: RiskAnalysisProps) {
     [weather],
   );
 
-  // Histórico de 5 dias (real ou estressado pelo cenário de solo saturado)
   const soilSaturation = useMemo(() => {
     const baseHistory = precipContext?.history ?? [];
     const history =
@@ -332,7 +338,6 @@ export function RiskAnalysis({ onOpenInMap }: RiskAnalysisProps) {
     return { history, totalMm, status, maxDayMm };
   }, [precipContext, scenario]);
 
-  // Vetores globais de risco da cidade
   const vectors = useMemo(() => {
     const rain5d = soilSaturation.totalMm;
     const peakNextRain =
@@ -423,7 +428,6 @@ export function RiskAnalysis({ onOpenInMap }: RiskAnalysisProps) {
     airQuality,
   ]);
 
-  // Matriz de vulnerabilidade com todos os 75 bairros + Bacias + Base ENAU 2020–2024
   const regionalMatrix = useMemo<RegionalRiskRow[]>(() => {
     const rainBoost =
       scenario === "evening-storm"
@@ -525,7 +529,6 @@ export function RiskAnalysis({ onOpenInMap }: RiskAnalysisProps) {
     }).sort((a, b) => b.compositeScore - a.compositeScore);
   }, [combinedEvents, scenario, vectors.peakNextRain, soilSaturation.totalMm]);
 
-  // Agregação por Bacia Hidrográfica
   const watershedSummary = useMemo(() => {
     return CURITIBA_WATERSHEDS.map((ws) => {
       const rows = regionalMatrix.filter((r) => r.watershed === ws);
@@ -547,7 +550,6 @@ export function RiskAnalysis({ onOpenInMap }: RiskAnalysisProps) {
     }).sort((a, b) => b.avgDrainage - a.avgDrainage);
   }, [regionalMatrix]);
 
-  // Consulta real no backend GTFS para os top 3 bairros mais críticos
   const top3RegionsKey = useMemo(
     () =>
       regionalMatrix
@@ -625,6 +627,7 @@ export function RiskAnalysis({ onOpenInMap }: RiskAnalysisProps) {
   }, [regionalMatrix, transitImpacts]);
 
   const filteredMatrix = useMemo(() => {
+    const term = tableSearch.trim().toLowerCase();
     return regionalMatrix.filter((row) => {
       if (levelFilter !== "all" && row.level !== levelFilter) return false;
       if (regionalFilter !== "all" && row.regional !== regionalFilter) {
@@ -633,11 +636,21 @@ export function RiskAnalysis({ onOpenInMap }: RiskAnalysisProps) {
       if (watershedFilter !== "all" && row.watershed !== watershedFilter) {
         return false;
       }
+      if (term) {
+        const hay =
+          `${row.neighborhood} ${row.regional} ${row.watershed}`.toLowerCase();
+        if (!hay.includes(term)) return false;
+      }
       return true;
     });
-  }, [regionalMatrix, levelFilter, regionalFilter, watershedFilter]);
+  }, [
+    regionalMatrix,
+    levelFilter,
+    regionalFilter,
+    watershedFilter,
+    tableSearch,
+  ]);
 
-  // Projeção de risco nas próximas 6 horas
   const hourlyProjection = useMemo(() => {
     const slots =
       scenario === "evening-storm"
@@ -734,7 +747,6 @@ export function RiskAnalysis({ onOpenInMap }: RiskAnalysisProps) {
     });
   }, [precipContext, scenario]);
 
-  // Recomendações operacionais geradas automaticamente
   const recommendations = useMemo(() => {
     const items: Array<{
       id: string;
@@ -846,6 +858,14 @@ export function RiskAnalysis({ onOpenInMap }: RiskAnalysisProps) {
     window.setTimeout(() => setExportedFeedback(false), 2600);
   }
 
+  function handleInspectNeighborhoodRow(neighborhood: string) {
+    setSelectedRegionName(neighborhood);
+    explorerRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+    });
+  }
+
   const selectedRegionMatrixRow = useMemo(
     () =>
       regionalMatrix.find((r) => r.neighborhood === selectedRegion.name) ??
@@ -859,6 +879,12 @@ export function RiskAnalysis({ onOpenInMap }: RiskAnalysisProps) {
     if (scenario === "evening-storm") return Math.min(95, base + 14);
     return base;
   }, [regionalWeather, scenario]);
+
+  const hasMatrixFilters =
+    levelFilter !== "all" ||
+    regionalFilter !== "all" ||
+    watershedFilter !== "all" ||
+    tableSearch.trim() !== "";
 
   return (
     <div className="risk-analysis-page">
@@ -916,8 +942,86 @@ export function RiskAnalysis({ onOpenInMap }: RiskAnalysisProps) {
         </div>
       </section>
 
+      {/* VETORES DE RISCO */}
+      <section className="risk-vectors-grid">
+        <article className="panel risk-master-card">
+          <div className="occurrence-kpi-top">
+            <span>Índice geral de risco</span>
+            <span className={`risk-pill-badge ${vectors.globalLevel}`}>
+              {riskLabels[vectors.globalLevel]}
+            </span>
+          </div>
+
+          <div className="risk-master-score">
+            <strong>{vectors.globalScore}</strong>
+            <span>/100</span>
+          </div>
+
+          <div className="urban-index-bar">
+            <span
+              style={{
+                width: `${vectors.globalScore}%`,
+                backgroundColor:
+                  vectors.globalLevel === "high"
+                    ? "#E12D53"
+                    : vectors.globalLevel === "medium"
+                      ? "#E3962D"
+                      : "#4E7861",
+              }}
+            />
+          </div>
+
+          <small>
+            {isConvectiveSeason
+              ? "Período convectivo (Nov–Mar): pico histórico de alagamentos"
+              : "Calibrado com base empírica ENAU/ABRHidro (2020–2024)"}
+          </small>
+        </article>
+
+        <article className="panel occurrence-kpi-card">
+          <div className="occurrence-kpi-top">
+            <span>Risco hídrico / bacias</span>
+            <div className="metric-icon metric-icon-default">
+              <Waves size={16} />
+            </div>
+          </div>
+          <strong>{vectors.drainageRisk}%</strong>
+          <small>
+            {soilSaturation.status.label} · {soilSaturation.totalMm} mm (5d)
+          </small>
+        </article>
+
+        <article className="panel occurrence-kpi-card">
+          <div className="occurrence-kpi-top">
+            <span>Risco de mobilidade</span>
+            <div className="metric-icon metric-icon-warning">
+              <CarFront size={16} />
+            </div>
+          </div>
+          <strong>{vectors.mobilityRisk}%</strong>
+          <small>
+            {transitSummary.uniqueRoutesCount} linhas GTFS em áreas críticas
+          </small>
+        </article>
+
+        <article className="panel occurrence-kpi-card">
+          <div className="occurrence-kpi-top">
+            <span>Risco ambiental (Ar)</span>
+            <div className="metric-icon metric-icon-default">
+              <Wind size={16} />
+            </div>
+          </div>
+          <strong>{vectors.environmentalRisk}%</strong>
+          <small>
+            {airQuality
+              ? `EAQI ${airQuality.europeanAqi} · ${airQuality.categoryLabel}`
+              : "Consultando Open-Meteo..."}
+          </small>
+        </article>
+      </section>
+
       {/* CONSULTA DETALHADA POR BAIRRO (TODOS OS 75 BAIRROS) */}
-      <section className="panel regional-explorer-panel">
+      <section ref={explorerRef} className="panel regional-explorer-panel">
         <div className="panel-header">
           <div>
             <span className="panel-eyebrow">
@@ -1087,84 +1191,6 @@ export function RiskAnalysis({ onOpenInMap }: RiskAnalysisProps) {
         </div>
       </section>
 
-      {/* VETORES DE RISCO */}
-      <section className="risk-vectors-grid">
-        <article className="panel risk-master-card">
-          <div className="occurrence-kpi-top">
-            <span>Índice geral de risco</span>
-            <span className={`risk-pill-badge ${vectors.globalLevel}`}>
-              {riskLabels[vectors.globalLevel]}
-            </span>
-          </div>
-
-          <div className="risk-master-score">
-            <strong>{vectors.globalScore}</strong>
-            <span>/100</span>
-          </div>
-
-          <div className="urban-index-bar">
-            <span
-              style={{
-                width: `${vectors.globalScore}%`,
-                backgroundColor:
-                  vectors.globalLevel === "high"
-                    ? "#E12D53"
-                    : vectors.globalLevel === "medium"
-                      ? "#E3962D"
-                      : "#4E7861",
-              }}
-            />
-          </div>
-
-          <small>
-            {isConvectiveSeason
-              ? "Período convectivo (Nov–Mar): pico histórico de alagamentos"
-              : "Calibrado com base empírica ENAU/ABRHidro (2020–2024)"}
-          </small>
-        </article>
-
-        <article className="panel occurrence-kpi-card">
-          <div className="occurrence-kpi-top">
-            <span>Risco hídrico / bacias</span>
-            <div className="metric-icon metric-icon-default">
-              <Waves size={16} />
-            </div>
-          </div>
-          <strong>{vectors.drainageRisk}%</strong>
-          <small>
-            {soilSaturation.status.label} · {soilSaturation.totalMm} mm (5d)
-          </small>
-        </article>
-
-        <article className="panel occurrence-kpi-card">
-          <div className="occurrence-kpi-top">
-            <span>Risco de mobilidade</span>
-            <div className="metric-icon metric-icon-warning">
-              <CarFront size={16} />
-            </div>
-          </div>
-          <strong>{vectors.mobilityRisk}%</strong>
-          <small>
-            {transitSummary.uniqueRoutesCount} linhas GTFS em áreas críticas
-          </small>
-        </article>
-
-        <article className="panel occurrence-kpi-card">
-          <div className="occurrence-kpi-top">
-            <span>Risco ambiental (Ar)</span>
-            <div className="metric-icon metric-icon-default">
-              <Wind size={16} />
-            </div>
-          </div>
-          <strong>{vectors.environmentalRisk}%</strong>
-          <small>
-            {airQuality
-              ? `EAQI ${airQuality.europeanAqi} · ${airQuality.categoryLabel}`
-              : "Consultando Open-Meteo..."}
-          </small>
-        </article>
-      </section>
-
       {/* BACIAS HIDROGRÁFICAS + BASE EMPÍRICA DE ALAGAMENTOS (2020–2024) */}
       <section className="panel risk-watersheds-panel">
         <div className="panel-header">
@@ -1175,7 +1201,19 @@ export function RiskAnalysis({ onOpenInMap }: RiskAnalysisProps) {
             </span>
             <h2>Vulnerabilidade por Bacia Hidrográfica de Curitiba</h2>
           </div>
-          <span className="smart-real-badge">6 Bacias Principais</span>
+
+          {watershedFilter !== "all" ? (
+            <button
+              type="button"
+              className="smart-clear-filters-btn"
+              onClick={() => setWatershedFilter("all")}
+            >
+              <RotateCcw size={12} />
+              <span>Mostrar todas as 6 bacias</span>
+            </button>
+          ) : (
+            <span className="smart-real-badge">Clique para filtrar tabela</span>
+          )}
         </div>
 
         <div className="watersheds-grid">
@@ -1219,74 +1257,83 @@ export function RiskAnalysis({ onOpenInMap }: RiskAnalysisProps) {
         </div>
       </section>
 
-      {/* GRÁFICO CLIMÁTICO + MAPA CLIMÁTICO DE KÖPPEN */}
-      <section className="risk-climate-grid">
-        <article className="panel risk-climogram-panel">
+      {/* PROJEÇÃO HORÁRIA + PLANO PREVENTIVO */}
+      <section className="risk-middle-grid">
+        <article className="panel risk-timeline-panel">
           <div className="panel-header">
             <div>
-              <span className="panel-eyebrow">
-                NORMAIS CLIMATOLÓGICAS · CURITIBA (INMET / SIMEPAR)
-              </span>
-              <h2>Gráfico climático mensal (Chuva × Temperatura)</h2>
+              <span className="panel-eyebrow">JANELA DE ANTECIPAÇÃO (6H)</span>
+              <h2>Evolução horária do risco urbano</h2>
             </div>
             <span className="smart-real-badge">
-              Mês atual: {CURITIBA_CLIMOGRAM[currentMonthIndex]?.month}
+              {scenario === "realtime" ? "Open-Meteo" : "Simulado"}
             </span>
           </div>
 
-          <div className="climogram-chart">
-            {CURITIBA_CLIMOGRAM.map((item, idx) => {
-              const rainPct = Math.round((item.rainMm / 230) * 100);
-              const isCurrentMonth = idx === currentMonthIndex;
-              return (
+          {hourlyProjection.length === 0 ? (
+            <div className="smart-routes-empty">
+              Carregando curva horária de risco...
+            </div>
+          ) : (
+            <div className="risk-hourly-grid">
+              {hourlyProjection.map((slot) => (
                 <div
-                  key={item.month}
-                  className={`climogram-col ${isCurrentMonth ? "current" : ""}`}
+                  key={slot.hourLabel}
+                  className={`risk-hour-card ${slot.level}`}
                 >
-                  <span className="climogram-temp">
-                    {item.tempC.toFixed(0)}°
-                  </span>
-                  <div className="climogram-bar-track">
+                  <div className="risk-hour-top">
+                    <strong>{slot.hourLabel}</strong>
+                    {slot.isPeak && <span className="risk-peak-tag">Pico</span>}
+                  </div>
+
+                  <div className="risk-hour-meter">
                     <span
-                      style={{ height: `${rainPct}%` }}
-                      title={`${item.month}: ${item.rainMm} mm · ${item.tempC}°C`}
+                      style={{
+                        height: `${slot.riskScore}%`,
+                      }}
                     />
                   </div>
-                  <strong>{item.rainMm}</strong>
-                  <span>{item.month}</span>
-                </div>
-              );
-            })}
-          </div>
 
-          <div className="climogram-legend">
-            <span>
-              <i className="climogram-dot rain" /> Precipitação média mensal
-              (mm) · Pico: Nov–Mar
-            </span>
-            <span>
-              <Thermometer size={12} /> Temperatura média (°C) · Total anual:
-              1.522 mm
-            </span>
-          </div>
+                  <div className="risk-hour-score">{slot.riskScore}%</div>
+                  <small>
+                    {slot.precipitationMm.toFixed(1)} mm ·{" "}
+                    {slot.probabilityPercent}%
+                  </small>
+                </div>
+              ))}
+            </div>
+          )}
         </article>
 
-        <article className="panel risk-koppen-panel">
+        <article className="panel risk-actions-panel">
           <div className="panel-header">
             <div>
-              <span className="panel-eyebrow">
-                ZONAS CLIMÁTICAS · PARANÁ E RMC
-              </span>
-              <h2>Mapa climático de Köppen-Geiger</h2>
+              <span className="panel-eyebrow">RESPOSTA ANTECIPADA</span>
+              <h2>Recomendações operacionais</h2>
             </div>
-            <span className="koppen-code-badge">Curitiba: Cfb</span>
+            <Sparkles size={16} color="#244B40" />
           </div>
 
-          <KoppenMap />
+          <div className="risk-recommendations-list">
+            {recommendations.map((rec) => (
+              <div key={rec.id} className={`risk-rec-item ${rec.priority}`}>
+                <div className="risk-rec-top">
+                  <span className="occurrence-row-category-tag">
+                    {rec.area}
+                  </span>
+                  <span className={`risk-pill-badge ${rec.priority}`}>
+                    {riskLabels[rec.priority]}
+                  </span>
+                </div>
+                <strong>{rec.title}</strong>
+                <p>{rec.detail}</p>
+              </div>
+            ))}
+          </div>
         </article>
       </section>
 
-      {/* SATURAÇÃO DO SOLO (5 DIAS) + IMPACTO GTFS */}
+      {/* SATURAÇÃO DO SOLO + IMPACTO GTFS + CLIMATOLOGIA EM ABAS */}
       <section className="risk-insights-grid">
         <article className="panel risk-soil-panel">
           <div className="panel-header">
@@ -1405,80 +1452,102 @@ export function RiskAnalysis({ onOpenInMap }: RiskAnalysisProps) {
         </article>
       </section>
 
-      {/* PROJEÇÃO HORÁRIA + PLANO PREVENTIVO */}
-      <section className="risk-middle-grid">
-        <article className="panel risk-timeline-panel">
-          <div className="panel-header">
-            <div>
-              <span className="panel-eyebrow">JANELA DE ANTECIPAÇÃO (6H)</span>
-              <h2>Evolução horária do risco urbano</h2>
+      {/* CLIMATOLOGIA DE CURITIBA (CLIMOGRAMA × MAPA DE KÖPPEN EM ABAS) */}
+      <section className="panel risk-climogram-panel">
+        <div className="panel-header">
+          <div>
+            <span className="panel-eyebrow">
+              NORMAIS CLIMATOLÓGICAS · INMET / SIMEPAR & KÖPPEN-GEIGER
+            </span>
+            <h2>
+              {climateTab === "climogram"
+                ? "Gráfico climático mensal (Chuva × Temperatura)"
+                : "Mapa climático de Köppen-Geiger (Paraná e RMC)"}
+            </h2>
+          </div>
+
+          <div className="regional-selector-controls">
+            <div
+              className="smart-env-tabs"
+              role="tablist"
+              aria-label="Visualização climatológica"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={climateTab === "climogram"}
+                className={`smart-env-tab ${
+                  climateTab === "climogram" ? "active" : ""
+                }`}
+                onClick={() => setClimateTab("climogram")}
+              >
+                <Thermometer size={13} />
+                <span>Climograma</span>
+              </button>
+
+              <button
+                type="button"
+                role="tab"
+                aria-selected={climateTab === "koppen"}
+                className={`smart-env-tab ${
+                  climateTab === "koppen" ? "active" : ""
+                }`}
+                onClick={() => setClimateTab("koppen")}
+              >
+                <MapPin size={13} />
+                <span>Mapa Köppen</span>
+              </button>
             </div>
-            <span className="smart-real-badge">
-              {scenario === "realtime" ? "Open-Meteo" : "Simulado"}
+
+            <span className="koppen-code-badge">
+              {climateTab === "climogram"
+                ? `Mês atual: ${CURITIBA_CLIMOGRAM[currentMonthIndex]?.month}`
+                : "Curitiba: Cfb"}
             </span>
           </div>
+        </div>
 
-          {hourlyProjection.length === 0 ? (
-            <div className="smart-routes-empty">
-              Carregando curva horária de risco...
-            </div>
-          ) : (
-            <div className="risk-hourly-grid">
-              {hourlyProjection.map((slot) => (
-                <div
-                  key={slot.hourLabel}
-                  className={`risk-hour-card ${slot.level}`}
-                >
-                  <div className="risk-hour-top">
-                    <strong>{slot.hourLabel}</strong>
-                    {slot.isPeak && <span className="risk-peak-tag">Pico</span>}
+        {climateTab === "climogram" ? (
+          <>
+            <div className="climogram-chart">
+              {CURITIBA_CLIMOGRAM.map((item, idx) => {
+                const rainPct = Math.round((item.rainMm / 230) * 100);
+                const isCurrentMonth = idx === currentMonthIndex;
+                return (
+                  <div
+                    key={item.month}
+                    className={`climogram-col ${isCurrentMonth ? "current" : ""}`}
+                  >
+                    <span className="climogram-temp">
+                      {item.tempC.toFixed(0)}°
+                    </span>
+                    <div className="climogram-bar-track">
+                      <span
+                        style={{ height: `${rainPct}%` }}
+                        title={`${item.month}: ${item.rainMm} mm · ${item.tempC}°C`}
+                      />
+                    </div>
+                    <strong>{item.rainMm}</strong>
+                    <span>{item.month}</span>
                   </div>
-
-                  <div className="risk-hour-meter">
-                    <span
-                      style={{
-                        height: `${slot.riskScore}%`,
-                      }}
-                    />
-                  </div>
-
-                  <div className="risk-hour-score">{slot.riskScore}%</div>
-                  <small>
-                    {slot.precipitationMm.toFixed(1)} mm ·{" "}
-                    {slot.probabilityPercent}%
-                  </small>
-                </div>
-              ))}
+                );
+              })}
             </div>
-          )}
-        </article>
 
-        <article className="panel risk-actions-panel">
-          <div className="panel-header">
-            <div>
-              <span className="panel-eyebrow">RESPOSTA ANTECIPADA</span>
-              <h2>Recomendações operacionais</h2>
+            <div className="climogram-legend">
+              <span>
+                <i className="climogram-dot rain" /> Precipitação média mensal
+                (mm) · Pico: Nov–Mar
+              </span>
+              <span>
+                <Thermometer size={12} /> Temperatura média (°C) · Total anual:
+                1.522 mm
+              </span>
             </div>
-            <Sparkles size={16} color="#244B40" />
-          </div>
-
-          <div className="risk-recommendations-list">
-            {recommendations.map((rec) => (
-              <div key={rec.id} className={`risk-rec-item ${rec.priority}`}>
-                <div className="risk-rec-top">
-                  <span className="occurrence-row-category-tag">
-                    {rec.area}
-                  </span>
-                  <span className={`risk-pill-badge ${rec.priority}`}>
-                    {riskLabels[rec.priority]}
-                  </span>
-                </div>
-                <strong>{rec.title}</strong>
-                <p>{rec.detail}</p>
-              </div>
-            ))}
-          </div>
-        </article>
+          </>
+        ) : (
+          <KoppenMap />
+        )}
       </section>
 
       {/* MATRIZ DE VULNERABILIDADE DOS 75 BAIRROS */}
@@ -1493,6 +1562,25 @@ export function RiskAnalysis({ onOpenInMap }: RiskAnalysisProps) {
           </div>
 
           <div className="regional-selector-controls">
+            <div className="risk-table-search">
+              <Search size={13} />
+              <input
+                type="text"
+                placeholder="Filtrar bairro..."
+                value={tableSearch}
+                onChange={(e) => setTableSearch(e.target.value)}
+              />
+              {tableSearch && (
+                <button
+                  type="button"
+                  onClick={() => setTableSearch("")}
+                  aria-label="Limpar busca"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
             <label className="regional-select-box">
               <select
                 value={watershedFilter}
@@ -1531,9 +1619,9 @@ export function RiskAnalysis({ onOpenInMap }: RiskAnalysisProps) {
               {(
                 [
                   { id: "all", label: "Todos" },
-                  { id: "high", label: "Risco Alto" },
-                  { id: "medium", label: "Risco Médio" },
-                  { id: "low", label: "Risco Baixo" },
+                  { id: "high", label: "Alto" },
+                  { id: "medium", label: "Médio" },
+                  { id: "low", label: "Baixo" },
                 ] as const
               ).map((item) => (
                 <button
@@ -1546,6 +1634,22 @@ export function RiskAnalysis({ onOpenInMap }: RiskAnalysisProps) {
                 </button>
               ))}
             </div>
+
+            {hasMatrixFilters && (
+              <button
+                type="button"
+                className="smart-clear-filters-btn"
+                onClick={() => {
+                  setLevelFilter("all");
+                  setRegionalFilter("all");
+                  setWatershedFilter("all");
+                  setTableSearch("");
+                }}
+              >
+                <RotateCcw size={12} />
+                <span>Limpar</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -1559,74 +1663,87 @@ export function RiskAnalysis({ onOpenInMap }: RiskAnalysisProps) {
                 <th>Drenagem</th>
                 <th>Trânsito</th>
                 <th>Score geral</th>
-                <th>Ação</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody>
-              {filteredMatrix.map((row) => (
-                <tr key={row.neighborhood}>
-                  <td>
-                    <div className="risk-region-cell">
-                      <span className={`risk-dot-indicator ${row.level}`} />
-                      <div>
-                        <strong>{row.neighborhood}</strong>
-                        <small className="risk-sub-regional">
-                          {row.regional}
-                        </small>
+              {filteredMatrix.map((row) => {
+                const isInspected = selectedRegionName === row.neighborhood;
+                return (
+                  <tr
+                    key={row.neighborhood}
+                    className={isInspected ? "is-selected-row" : ""}
+                  >
+                    <td>
+                      <button
+                        type="button"
+                        className="risk-region-cell risk-region-btn"
+                        onClick={() =>
+                          handleInspectNeighborhoodRow(row.neighborhood)
+                        }
+                        title="Carregar previsão detalhada deste bairro"
+                      >
+                        <span className={`risk-dot-indicator ${row.level}`} />
+                        <div>
+                          <strong>{row.neighborhood}</strong>
+                          <small className="risk-sub-regional">
+                            {row.regional}
+                          </small>
+                        </div>
+                      </button>
+                    </td>
+                    <td>
+                      <span className="occurrence-row-category-tag">
+                        {row.watershed.replace("Bacia do ", "")}
+                      </span>
+                    </td>
+                    <td className="risk-factor-cell">
+                      {HISTORICAL_TIER_LABELS[row.historicalFloodTier]}
+                    </td>
+                    <td>
+                      <div className="risk-mini-bar-cell">
+                        <span>{row.drainageScore}%</span>
+                        <div className="urban-index-bar">
+                          <span
+                            style={{
+                              width: `${row.drainageScore}%`,
+                              backgroundColor: "#287CB5",
+                            }}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td>
-                    <span className="occurrence-row-category-tag">
-                      {row.watershed.replace("Bacia do ", "")}
-                    </span>
-                  </td>
-                  <td className="risk-factor-cell">
-                    {HISTORICAL_TIER_LABELS[row.historicalFloodTier]}
-                  </td>
-                  <td>
-                    <div className="risk-mini-bar-cell">
-                      <span>{row.drainageScore}%</span>
-                      <div className="urban-index-bar">
-                        <span
-                          style={{
-                            width: `${row.drainageScore}%`,
-                            backgroundColor: "#287CB5",
-                          }}
-                        />
+                    </td>
+                    <td>
+                      <div className="risk-mini-bar-cell">
+                        <span>{row.trafficScore}%</span>
+                        <div className="urban-index-bar">
+                          <span
+                            style={{
+                              width: `${row.trafficScore}%`,
+                              backgroundColor: "#D97732",
+                            }}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="risk-mini-bar-cell">
-                      <span>{row.trafficScore}%</span>
-                      <div className="urban-index-bar">
-                        <span
-                          style={{
-                            width: `${row.trafficScore}%`,
-                            backgroundColor: "#D97732",
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <span className={`risk-pill-badge ${row.level}`}>
-                      {row.compositeScore}% · {riskLabels[row.level]}
-                    </span>
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="occurrence-action-btn"
-                      onClick={() => onOpenInMap(row.representativeEvent)}
-                    >
-                      <MapPin size={12} />
-                      <span>Mapa</span>
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td>
+                      <span className={`risk-pill-badge ${row.level}`}>
+                        {row.compositeScore}% · {riskLabels[row.level]}
+                      </span>
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="occurrence-action-btn"
+                        onClick={() => onOpenInMap(row.representativeEvent)}
+                      >
+                        <MapPin size={12} />
+                        <span>Mapa</span>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

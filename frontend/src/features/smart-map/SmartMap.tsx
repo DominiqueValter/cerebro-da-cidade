@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -22,6 +22,7 @@ import {
   Layers,
   MapPin,
   Navigation,
+  RotateCcw,
   Route,
   Search,
   Sparkles,
@@ -61,6 +62,7 @@ import "leaflet/dist/leaflet.css";
 
 type SeverityFilter = "all" | UrbanEvent["severity"];
 type BaseMapStyle = "clean" | "osm";
+type EnvTab = "rain" | "air";
 
 interface InspectedPoint {
   type: "event" | "custom";
@@ -120,15 +122,18 @@ function MapController({
   routeShape,
   flyTarget,
   resetNonce,
+  skipInitialBoundaryFit,
   onMapClick,
 }: {
   boundary: GeoJSON.GeoJsonObject | null;
   routeShape: RouteShapeResponse | null;
   flyTarget: FlyTarget | null;
   resetNonce: number;
+  skipInitialBoundaryFit: boolean;
   onMapClick: (lat: number, lng: number) => void;
 }) {
   const map = useMap();
+  const hasFittedInitialRef = useRef(false);
 
   useMapEvents({
     click(e) {
@@ -142,7 +147,7 @@ function MapController({
       if (allCoords.length > 1) {
         const bounds = latLngBounds(allCoords);
         if (bounds.isValid()) {
-          map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+          map.fitBounds(bounds, { padding: [44, 44], maxZoom: 14 });
         }
       }
     }
@@ -157,11 +162,17 @@ function MapController({
 
   useEffect(() => {
     if (!boundary) return;
+    if (!hasFittedInitialRef.current && skipInitialBoundaryFit) {
+      hasFittedInitialRef.current = true;
+      return;
+    }
+    hasFittedInitialRef.current = true;
+
     const bounds = geoJSON(boundary).getBounds();
     if (bounds.isValid()) {
       map.fitBounds(bounds, { padding: [24, 24], maxZoom: 12 });
     }
-  }, [boundary, resetNonce, map]);
+  }, [boundary, resetNonce, skipInitialBoundaryFit, map]);
 
   return null;
 }
@@ -171,6 +182,7 @@ export function SmartMap({ initialEvent }: SmartMapProps) {
   const [baseStyle, setBaseStyle] = useState<BaseMapStyle>("clean");
   const [resetNonce, setResetNonce] = useState(0);
   const [flyTarget, setFlyTarget] = useState<FlyTarget | null>(null);
+  const [envTab, setEnvTab] = useState<EnvTab>("rain");
 
   // Camadas e filtros de eventos
   const [activeCategories, setActiveCategories] = useState<
@@ -288,7 +300,6 @@ export function SmartMap({ initialEvent }: SmartMapProps) {
     };
   }, [selectedRouteId]);
 
-  // Consulta no backend quais paradas e linhas de ônibus passam no raio de 500m
   useEffect(() => {
     if (!inspected) {
       setNearbyImpact(null);
@@ -350,6 +361,17 @@ export function SmartMap({ initialEvent }: SmartMapProps) {
       .slice(0, 35);
   }, [routes, routeQuery]);
 
+  const hasCustomFilters =
+    !activeCategories.traffic ||
+    !activeCategories.flood ||
+    !activeCategories.incident ||
+    severityFilter !== "all";
+
+  function resetFilters() {
+    setActiveCategories({ traffic: true, flood: true, incident: true });
+    setSeverityFilter("all");
+  }
+
   function toggleCategory(category: UrbanEventCategory) {
     setActiveCategories((prev) => ({
       ...prev,
@@ -406,6 +428,11 @@ export function SmartMap({ initialEvent }: SmartMapProps) {
     );
   }, [precipContext]);
 
+  const maxHistoryRain = useMemo(() => {
+    if (!precipContext?.history.length) return 1;
+    return Math.max(1, ...precipContext.history.map((d) => d.precipitationSum));
+  }, [precipContext]);
+
   return (
     <div className="smart-map-page">
       <section className="page-heading">
@@ -413,8 +440,8 @@ export function SmartMap({ initialEvent }: SmartMapProps) {
           <span className="page-eyebrow">EXPLORAÇÃO GEOGRÁFICA</span>
           <h1>Mapa inteligente</h1>
           <p>
-            Cruze ocorrências urbanas por região, qualidade do ar, previsão de
-            chuva e itinerários do transporte coletivo em Curitiba.
+            Cruze ocorrências urbanas por região, condições ambientais e
+            itinerários do transporte coletivo em Curitiba.
           </p>
         </div>
 
@@ -434,12 +461,27 @@ export function SmartMap({ initialEvent }: SmartMapProps) {
       </section>
 
       <div className="smart-map-layout">
+        {/* COLUNA LATERAL COMPACTA E PRIORIZADA */}
         <aside className="smart-map-sidebar">
           {/* 1. CAMADAS E FILTROS */}
           <article className="panel smart-map-card">
-            <div className="smart-map-card-title">
-              <Layers size={15} />
-              <h2>Camadas e filtros</h2>
+            <div className="smart-map-card-header">
+              <div className="smart-map-card-title">
+                <Layers size={15} />
+                <h2>Camadas e filtros</h2>
+              </div>
+
+              {hasCustomFilters && (
+                <button
+                  type="button"
+                  className="smart-clear-filters-btn"
+                  onClick={resetFilters}
+                  title="Restaurar todas as camadas"
+                >
+                  <RotateCcw size={12} />
+                  <span>Limpar</span>
+                </button>
+              )}
             </div>
 
             <div className="smart-map-toggles">
@@ -503,133 +545,7 @@ export function SmartMap({ initialEvent }: SmartMapProps) {
             </div>
           </article>
 
-          {/* 2. QUALIDADE DO AR (OPEN-METEO AIR QUALITY API) */}
-          <article className="panel smart-map-card">
-            <div className="smart-map-card-header">
-              <div className="smart-map-card-title">
-                <Wind size={15} />
-                <h2>Qualidade do ar</h2>
-              </div>
-              <span className="smart-real-badge">Open-Meteo</span>
-            </div>
-
-            {airQuality ? (
-              <>
-                <div className="smart-aqi-row">
-                  <div className="smart-aqi-score">
-                    <strong>{airQuality.europeanAqi}</strong>
-                    <span>EAQI</span>
-                  </div>
-                  <span
-                    className={`smart-aqi-status ${airQuality.categoryVariant}`}
-                  >
-                    {airQuality.categoryLabel}
-                  </span>
-                </div>
-
-                <div className="smart-aqi-pollutants">
-                  <div>
-                    <span>PM2.5</span>
-                    <strong>{airQuality.pm25} µg/m³</strong>
-                  </div>
-                  <div>
-                    <span>PM10</span>
-                    <strong>{airQuality.pm10} µg/m³</strong>
-                  </div>
-                  <div>
-                    <span>Ozônio (O₃)</span>
-                    <strong>{airQuality.ozone} µg/m³</strong>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="smart-routes-empty">
-                Carregando índice de qualidade do ar...
-              </div>
-            )}
-          </article>
-
-          {/* 3. CHUVA RECENTE E PREVISÃO HORÁRIA (6H) */}
-          <article className="panel smart-map-card">
-            <div className="smart-map-card-header">
-              <div className="smart-map-card-title">
-                <CloudRain size={15} />
-                <h2>Chuva recente e próximas 6h</h2>
-              </div>
-              <span className="smart-real-badge">Open-Meteo</span>
-            </div>
-
-            {precipContext ? (
-              <>
-                <div className="smart-rain-metrics">
-                  <div>
-                    <span>Acumulado (5 dias)</span>
-                    <strong>{precipContext.last5DaysTotalMm} mm</strong>
-                  </div>
-                  <div>
-                    <span>Probabilidade hoje</span>
-                    <strong>
-                      {precipContext.todayProbabilityPercent !== null
-                        ? `${precipContext.todayProbabilityPercent}%`
-                        : "--"}
-                    </strong>
-                  </div>
-                </div>
-
-                {precipContext.next6Hours.length > 0 && (
-                  <div className="smart-hourly-rain">
-                    <span className="smart-map-sublabel">
-                      Previsão horária (próximas 6h)
-                    </span>
-                    <div className="smart-hourly-bars">
-                      {precipContext.next6Hours.map((hour) => {
-                        const heightPct = Math.max(
-                          10,
-                          Math.round(
-                            (hour.precipitationMm / maxHourlyRain) * 100,
-                          ),
-                        );
-                        return (
-                          <div className="smart-hourly-col" key={hour.time}>
-                            <span className="smart-hourly-prob">
-                              {hour.probabilityPercent !== null
-                                ? `${hour.probabilityPercent}%`
-                                : "--"}
-                            </span>
-                            <div className="smart-hourly-track">
-                              <span
-                                style={{
-                                  height: `${hour.precipitationMm > 0 ? heightPct : 8}%`,
-                                  opacity: hour.precipitationMm > 0 ? 1 : 0.35,
-                                }}
-                              />
-                            </div>
-                            <strong>{hour.precipitationMm.toFixed(1)}</strong>
-                            <span>{hour.hourLabel}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                <div className="smart-rain-history">
-                  {precipContext.history.map((day) => (
-                    <div className="smart-rain-day" key={day.date}>
-                      <span>{formatShortDate(day.date)}</span>
-                      <strong>{day.precipitationSum.toFixed(1)} mm</strong>
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className="smart-routes-empty">
-                Carregando dados pluviométricos...
-              </div>
-            )}
-          </article>
-
-          {/* 4. ITINERÁRIOS DE ÔNIBUS (GTFS) */}
+          {/* 2. ITINERÁRIOS DE ÔNIBUS (GTFS) */}
           <article className="panel smart-map-card">
             <div className="smart-map-card-header">
               <div className="smart-map-card-title">
@@ -668,7 +584,7 @@ export function SmartMap({ initialEvent }: SmartMapProps) {
                     {shapeLoading
                       ? "Carregando itinerário..."
                       : selectedShape
-                        ? `${selectedShape.route.longName} · ${selectedShape.shapes[0]?.coordinates.length ?? 0} pontos (${selectedShape.route.geometrySource})`
+                        ? `${selectedShape.route.longName} · ${selectedShape.shapes[0]?.coordinates.length ?? 0} pts`
                         : "Itinerário indisponível"}
                   </span>
                 </div>
@@ -724,17 +640,183 @@ export function SmartMap({ initialEvent }: SmartMapProps) {
                 })}
             </div>
           </article>
+
+          {/* 3. CONTEXTO AMBIENTAL UNIFICADO (CHUVA + QUALIDADE DO AR) */}
+          {/* 3. CONTEXTO AMBIENTAL UNIFICADO (CHUVA + QUALIDADE DO AR) */}
+          <article className="panel smart-map-card">
+            <div className="smart-map-card-header smart-env-header">
+              <div
+                className="smart-env-tabs"
+                role="tablist"
+                aria-label="Indicadores ambientais"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={envTab === "rain"}
+                  className={`smart-env-tab ${envTab === "rain" ? "active" : ""}`}
+                  onClick={() => setEnvTab("rain")}
+                >
+                  <CloudRain size={13} />
+                  <span>Chuva (6h)</span>
+                </button>
+
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={envTab === "air"}
+                  className={`smart-env-tab ${envTab === "air" ? "active" : ""}`}
+                  onClick={() => setEnvTab("air")}
+                >
+                  <Wind size={13} />
+                  <span>Qualidade do ar</span>
+                </button>
+              </div>
+
+              <span className="smart-real-badge smart-nowrap">Open-Meteo</span>
+            </div>
+
+            {envTab === "rain" ? (
+              precipContext ? (
+                <div className="smart-rain-body">
+                  <div className="smart-rain-metrics">
+                    <div className="smart-rain-stat-box">
+                      <span>Acumulado (5 dias)</span>
+                      <strong>{precipContext.last5DaysTotalMm} mm</strong>
+                    </div>
+                    <div className="smart-rain-stat-box">
+                      <span>Probabilidade hoje</span>
+                      <strong>
+                        {precipContext.todayProbabilityPercent !== null
+                          ? `${precipContext.todayProbabilityPercent}%`
+                          : "--"}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {precipContext.next6Hours.length > 0 && (
+                    <div className="smart-hourly-rain">
+                      <span className="smart-map-sublabel">
+                        Previsão horária (próximas 6h)
+                      </span>
+                      <div className="smart-hourly-bars">
+                        {precipContext.next6Hours.map((hour) => {
+                          const heightPct = Math.max(
+                            10,
+                            Math.round(
+                              (hour.precipitationMm / maxHourlyRain) * 100,
+                            ),
+                          );
+                          return (
+                            <div className="smart-hourly-col" key={hour.time}>
+                              <span className="smart-hourly-prob">
+                                {hour.probabilityPercent !== null
+                                  ? `${hour.probabilityPercent}%`
+                                  : "--"}
+                              </span>
+                              <div className="smart-hourly-track">
+                                <span
+                                  style={{
+                                    height: `${hour.precipitationMm > 0 ? heightPct : 8}%`,
+                                    opacity:
+                                      hour.precipitationMm > 0 ? 1 : 0.35,
+                                  }}
+                                />
+                              </div>
+                              <strong>{hour.precipitationMm.toFixed(1)}</strong>
+                              <span>{hour.hourLabel}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="smart-rain-history-section">
+                    <span className="smart-map-sublabel">
+                      Histórico diário (últimos 5 dias)
+                    </span>
+                    <div className="smart-rain-history">
+                      {precipContext.history.map((day) => {
+                        const barWidth = Math.max(
+                          6,
+                          Math.round(
+                            (day.precipitationSum / maxHistoryRain) * 100,
+                          ),
+                        );
+
+                        return (
+                          <div className="smart-rain-day" key={day.date}>
+                            <span className="smart-rain-day-date">
+                              {formatShortDate(day.date)}
+                            </span>
+                            <div className="smart-rain-day-track">
+                              <span
+                                style={{
+                                  width: `${day.precipitationSum > 0 ? barWidth : 0}%`,
+                                }}
+                              />
+                            </div>
+                            <strong className="smart-rain-day-value">
+                              {day.precipitationSum.toFixed(1)} mm
+                            </strong>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="smart-routes-empty">
+                  Carregando dados pluviométricos...
+                </div>
+              )
+            ) : airQuality ? (
+              <>
+                <div className="smart-aqi-row">
+                  <div className="smart-aqi-score">
+                    <strong>{airQuality.europeanAqi}</strong>
+                    <span>EAQI</span>
+                  </div>
+                  <span
+                    className={`smart-aqi-status ${airQuality.categoryVariant}`}
+                  >
+                    {airQuality.categoryLabel}
+                  </span>
+                </div>
+
+                <div className="smart-aqi-pollutants">
+                  <div>
+                    <span>PM2.5</span>
+                    <strong>{airQuality.pm25} µg/m³</strong>
+                  </div>
+                  <div>
+                    <span>PM10</span>
+                    <strong>{airQuality.pm10} µg/m³</strong>
+                  </div>
+                  <div>
+                    <span>Ozônio (O₃)</span>
+                    <strong>{airQuality.ozone} µg/m³</strong>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="smart-routes-empty">
+                Carregando índice de qualidade do ar...
+              </div>
+            )}
+          </article>
         </aside>
 
-        {/* COLUNA PRINCIPAL: MAPA + INSPEÇÃO + FEED DE OCORRÊNCIAS */}
+        {/* COLUNA PRINCIPAL: MAPA + ANÁLISE ESPACIAL + FEED EM GRADE */}
         <div className="smart-map-main-column">
           <section className="panel smart-map-canvas-panel">
             <div className="smart-map-toolbar">
               <div className="smart-map-toolbar-hint">
                 <Crosshair size={13} />
                 <span>
-                  Clique em um marcador ou na lista abaixo para focar a região e
-                  cruzar as linhas de ônibus em 500m
+                  Clique em qualquer ponto ou ocorrência para cruzar linhas GTFS
+                  no raio de 500m
                 </span>
               </div>
 
@@ -793,6 +875,7 @@ export function SmartMap({ initialEvent }: SmartMapProps) {
                   routeShape={selectedShape}
                   flyTarget={flyTarget}
                   resetNonce={resetNonce}
+                  skipInitialBoundaryFit={Boolean(initialEvent)}
                   onMapClick={handleMapClick}
                 />
 
@@ -1089,7 +1172,7 @@ export function SmartMap({ initialEvent }: SmartMapProps) {
                 painel lateral.
               </div>
             ) : (
-              <div className="occurrence-cards-list">
+              <div className="occurrence-cards-list smart-map-occurrences-grid">
                 {filteredEvents.map((event) => {
                   const isSelected = inspected?.event?.id === event.id;
                   const accentColor = riskAccentColors[event.severity];

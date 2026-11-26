@@ -1,16 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
-  ArrowRight,
+  ArrowLeftRight,
   Bell,
   BellRing,
   Bookmark,
   BookmarkCheck,
   Bus,
   CloudRain,
+  Droplets,
+  MapPin,
   Navigation,
+  PhoneCall,
   ShieldCheck,
+  Thermometer,
   Waves,
+  X,
 } from "lucide-react";
 
 import {
@@ -34,6 +39,12 @@ interface CitizenPortalProps {
   savedNeighborhoods: string[];
   onToggleSaveNeighborhood: (neighborhood: string) => void;
 }
+
+const riskAccentColors = {
+  high: "#E12D53",
+  medium: "#E3962D",
+  low: "#4E7861",
+};
 
 export function CitizenPortal({
   user,
@@ -97,7 +108,6 @@ export function CitizenPortal({
     };
   }, [currentRegion.latitude, currentRegion.longitude]);
 
-  // Consulta linhas GTFS na origem e destino selecionados
   useEffect(() => {
     const orig = CURITIBA_NEIGHBORHOODS.find(
       (n) => n.name === originNeighborhood,
@@ -137,7 +147,6 @@ export function CitizenPortal({
     return [...predictive, ...urbanEvents];
   }, [precipContext]);
 
-  // Cálculo simplificado e claro do risco de alagamento para o cidadão
   const floodAssessment = useMemo(() => {
     const rain6h = neighborhoodWeather?.next6HoursTotalMm ?? 0;
     const tierScore =
@@ -158,29 +167,28 @@ export function CitizenPortal({
       return {
         score,
         level: "high" as const,
-        label: "Atenção: Risco Alto de Alagamento",
+        label: "Risco Alto de Alagamento",
         advice:
-          "Evite ruas próximas a córregos e fundos de vale. Prefira vias de cota mais alta.",
+          "Evite ruas próximas a córregos e fundos de vale. Prefira vias mais altas.",
       };
     }
     if (score >= 42) {
       return {
         score,
         level: "medium" as const,
-        label: "Risco Moderado de Acúmulo de Água",
+        label: "Risco Moderado de Acúmulo",
         advice:
-          "Possibilidade de poças em cruzamentos planos caso a chuva aperte.",
+          "Possibilidade de poças em cruzamentos planos caso a chuva aumente.",
       };
     }
     return {
       score,
       level: "low" as const,
-      label: "Situação Normal / Risco Baixo",
+      label: "Situação Normal · Risco Baixo",
       advice: "Boa drenagem e sem indícios de alagamento na região.",
     };
   }, [currentRegion, neighborhoodWeather]);
 
-  // Diagnóstico da rota escolhida (Origem -> Destino)
   const routeCheck = useMemo(() => {
     const routeEvents = allOccurrences.filter(
       (ev) =>
@@ -203,7 +211,6 @@ export function CitizenPortal({
       (e) => e.severity === "high" || e.category === "traffic",
     );
 
-    // Linhas em comum entre origem e destino (ou linhas atendendo o trajeto)
     const destIds = new Set(
       (destTransit?.affectedRoutes ?? []).map((r) => r.id),
     );
@@ -212,8 +219,8 @@ export function CitizenPortal({
     );
     const displayLines =
       directLines.length > 0
-        ? directLines.slice(0, 6)
-        : (originTransit?.affectedRoutes ?? []).slice(0, 6);
+        ? directLines.slice(0, 5)
+        : (originTransit?.affectedRoutes ?? []).slice(0, 5);
 
     return {
       routeEvents,
@@ -231,7 +238,6 @@ export function CitizenPortal({
     destTransit,
   ]);
 
-  // Alertas personalizados dos bairros salvos pelo usuário
   const savedAlerts = useMemo(() => {
     return allOccurrences.filter((ev) =>
       savedNeighborhoods.some(
@@ -242,10 +248,15 @@ export function CitizenPortal({
     );
   }, [allOccurrences, savedNeighborhoods]);
 
+  function handleSwapRoute() {
+    setOriginNeighborhood(destinationNeighborhood);
+    setDestinationNeighborhood(originNeighborhood);
+  }
+
   const isCurrentSaved = savedNeighborhoods.includes(selectedNeighborhood);
 
   return (
-    <div className="citizen-portal">
+    <div className="cp-page">
       <section className="page-heading">
         <div>
           <span className="page-eyebrow">
@@ -253,282 +264,401 @@ export function CitizenPortal({
           </span>
           <h1>Como está sua região e sua rota hoje?</h1>
           <p>
-            Acompanhe o risco de alagamento por bairro, verifique possíveis
-            atrasos no seu trajeto e salve seus bairros para receber alertas.
+            Acompanhe o risco de alagamento por bairro, planeje seu deslocamento
+            e gerencie seus alertas locais.
           </p>
         </div>
-      </section>
 
-      {/* 1. CONSULTA DE ALAGAMENTO POR BAIRRO + SALVAR PARA ALERTAS */}
-      <section className="panel citizen-card">
-        <div className="panel-header">
-          <div>
-            <span className="panel-eyebrow">
-              ÍNDICE DE ALAGAMENTO · {currentRegion.watershed.toUpperCase()}
+        <div className="smart-map-header-badges">
+          <div className="smart-map-summary-pill">
+            <Bell size={14} />
+            <span>
+              {savedNeighborhoods.length}{" "}
+              {savedNeighborhoods.length === 1
+                ? "bairro monitorado"
+                : "bairros monitorados"}
             </span>
-            <h2>Consultar condição do bairro</h2>
           </div>
 
-          <div className="regional-selector-controls">
-            <label className="regional-select-box">
-              <select
-                value={selectedNeighborhood}
-                onChange={(e) => setSelectedNeighborhood(e.target.value)}
-                aria-label="Escolher bairro"
-              >
-                {CURITIBA_REGIONALS.map((reg) => (
-                  <optgroup key={reg} label={reg}>
-                    {CURITIBA_NEIGHBORHOODS.filter(
-                      (n) => n.regional === reg,
-                    ).map((n) => (
-                      <option key={n.name} value={n.name}>
-                        {n.name}
-                      </option>
+          <div className="smart-map-summary-pill">
+            <AlertTriangle size={14} />
+            <span>
+              {savedAlerts.length}{" "}
+              {savedAlerts.length === 1 ? "alerta ativo" : "alertas ativos"}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <div className="cp-grid">
+        {/* COLUNA PRINCIPAL */}
+        <div className="cp-main">
+          {/* CARD 1: CONDIÇÃO DO BAIRRO */}
+          <section className="panel cp-panel">
+            <div className="panel-header">
+              <div>
+                <span className="panel-eyebrow">
+                  ÍNDICE DE ALAGAMENTO · {currentRegion.watershed.toUpperCase()}
+                </span>
+                <h2>Condição atual em {selectedNeighborhood}</h2>
+              </div>
+
+              <div className="regional-selector-controls">
+                <label className="regional-select-box">
+                  <MapPin size={14} />
+                  <select
+                    value={selectedNeighborhood}
+                    onChange={(e) => setSelectedNeighborhood(e.target.value)}
+                    aria-label="Escolher bairro"
+                  >
+                    {CURITIBA_REGIONALS.map((reg) => (
+                      <optgroup key={reg} label={reg}>
+                        {CURITIBA_NEIGHBORHOODS.filter(
+                          (n) => n.regional === reg,
+                        ).map((n) => (
+                          <option key={n.name} value={n.name}>
+                            {n.name}
+                          </option>
+                        ))}
+                      </optgroup>
                     ))}
-                  </optgroup>
-                ))}
-              </select>
-            </label>
+                  </select>
+                </label>
 
-            <button
-              type="button"
-              className={`occurrences-primary-btn ${isCurrentSaved ? "saved-active" : ""}`}
-              onClick={() => onToggleSaveNeighborhood(selectedNeighborhood)}
-            >
-              {isCurrentSaved ? (
-                <>
-                  <BookmarkCheck size={15} />
-                  <span>Bairro salvo nos alertas</span>
-                </>
-              ) : (
-                <>
-                  <Bookmark size={15} />
-                  <span>Salvar bairro para alertas</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-
-        <div className="citizen-flood-grid">
-          <div className={`citizen-status-box ${floodAssessment.level}`}>
-            <div className="citizen-status-top">
-              <Waves size={18} />
-              <span className={`risk-pill-badge ${floodAssessment.level}`}>
-                Índice {floodAssessment.score}%
-              </span>
-            </div>
-            <strong>{floodAssessment.label}</strong>
-            <p>{floodAssessment.advice}</p>
-          </div>
-
-          <div className="citizen-weather-box">
-            <div>
-              <span>Chuva prevista (próximas 6h)</span>
-              <strong>
-                {weatherLoading
-                  ? "..."
-                  : `${neighborhoodWeather?.next6HoursTotalMm ?? 0} mm`}
-              </strong>
-              <small>
-                Probabilidade máx.:{" "}
-                {neighborhoodWeather?.maxNext6HoursProb ?? 0}%
-              </small>
-            </div>
-
-            <div>
-              <span>Característica local</span>
-              <strong>{currentRegion.regional}</strong>
-              <small>{currentRegion.soilNote}</small>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 2. VERIFICADOR DE ROTA E POSSÍVEIS ATRASOS / ALAGAMENTOS */}
-      <section className="panel citizen-card">
-        <div className="panel-header">
-          <div>
-            <span className="panel-eyebrow">
-              PLANEJAMENTO DE DESLOCAMENTO · CARRO OU ÔNIBUS
-            </span>
-            <h2>Verificar minha rota</h2>
-          </div>
-          <Navigation size={16} color="#244B40" />
-        </div>
-
-        <div className="citizen-route-selectors">
-          <label className="occurrence-field">
-            <span>Bairro de saída (Origem)</span>
-            <select
-              value={originNeighborhood}
-              onChange={(e) => setOriginNeighborhood(e.target.value)}
-            >
-              {CURITIBA_NEIGHBORHOODS.map((n) => (
-                <option key={n.name} value={n.name}>
-                  {n.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <div className="citizen-route-arrow">
-            <ArrowRight size={18} />
-          </div>
-
-          <label className="occurrence-field">
-            <span>Bairro de chegada (Destino)</span>
-            <select
-              value={destinationNeighborhood}
-              onChange={(e) => setDestinationNeighborhood(e.target.value)}
-            >
-              {CURITIBA_NEIGHBORHOODS.map((n) => (
-                <option key={n.name} value={n.name}>
-                  {n.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        <div
-          className={`citizen-route-result ${
-            routeCheck.hasFlood
-              ? "high"
-              : routeCheck.hasProblems
-                ? "medium"
-                : "low"
-          }`}
-        >
-          <div className="citizen-route-result-head">
-            {routeCheck.hasProblems ? (
-              <AlertTriangle size={18} />
-            ) : (
-              <ShieldCheck size={18} />
-            )}
-            <strong>
-              {routeCheck.hasFlood
-                ? `Alerta de alagamento no trajeto ${originNeighborhood} → ${destinationNeighborhood}`
-                : routeCheck.hasHighTraffic
-                  ? `Possível lentidão ou atraso entre ${originNeighborhood} e ${destinationNeighborhood}`
-                  : `Trajeto livre entre ${originNeighborhood} e ${destinationNeighborhood}`}
-            </strong>
-          </div>
-
-          {routeCheck.routeEvents.length > 0 ? (
-            <ul className="citizen-route-events">
-              {routeCheck.routeEvents.map((ev) => (
-                <li key={ev.id}>
-                  <strong>
-                    {ev.neighborhood} ({ev.conditionLabel}):
-                  </strong>{" "}
-                  {ev.description}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="citizen-route-ok-text">
-              Nenhuma ocorrência de alagamento ou bloqueio ativo registrada
-              neste eixo no momento.
-            </p>
-          )}
-
-          <div className="citizen-gtfs-box">
-            <span className="citizen-gtfs-title">
-              <Bus size={13} />{" "}
-              {routeCheck.hasDirectConnection
-                ? "Linhas de ônibus que conectam a região:"
-                : "Principais linhas atendendo o ponto de partida:"}
-            </span>
-
-            <div className="risk-transit-chips">
-              {routeLoading ? (
-                <span className="smart-routes-empty">
-                  Consultando linhas de ônibus...
-                </span>
-              ) : routeCheck.displayLines.length > 0 ? (
-                routeCheck.displayLines.map((line) => (
-                  <span key={line.id} className="risk-transit-chip">
-                    <Bus size={11} />
-                    <strong>{line.shortName}</strong>
-                    <span>{line.longName}</span>
-                  </span>
-                ))
-              ) : (
-                <span className="smart-routes-empty">
-                  Consulte o terminal integrado mais próximo.
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 3. MEUS BAIRROS SALVOS & CENTRAL DE ALERTAS */}
-      <section className="panel citizen-card">
-        <div className="panel-header">
-          <div>
-            <span className="panel-eyebrow">
-              NOTIFICAÇÕES PERSONALIZADAS · {savedNeighborhoods.length}{" "}
-              BAIRRO(S) MONITORADO(S)
-            </span>
-            <h2>Meus bairros e alertas ativos</h2>
-          </div>
-          <BellRing size={16} color="#244B40" />
-        </div>
-
-        <div className="citizen-saved-chips">
-          {savedNeighborhoods.length === 0 ? (
-            <span className="smart-routes-empty">
-              Você ainda não salvou nenhum bairro. Selecione um bairro acima e
-              clique em &quot;Salvar bairro para alertas&quot;.
-            </span>
-          ) : (
-            savedNeighborhoods.map((name) => (
-              <span key={name} className="citizen-saved-pill">
-                <Bell size={12} />
-                <strong>{name}</strong>
                 <button
                   type="button"
-                  onClick={() => onToggleSaveNeighborhood(name)}
-                  title="Remover alerta deste bairro"
+                  className={`occurrences-primary-btn ${
+                    isCurrentSaved ? "saved-active" : ""
+                  }`}
+                  onClick={() => onToggleSaveNeighborhood(selectedNeighborhood)}
                 >
-                  ×
+                  {isCurrentSaved ? (
+                    <>
+                      <BookmarkCheck size={15} />
+                      <span>Salvo nos alertas</span>
+                    </>
+                  ) : (
+                    <>
+                      <Bookmark size={15} />
+                      <span>Salvar bairro</span>
+                    </>
+                  )}
                 </button>
-              </span>
-            ))
-          )}
+              </div>
+            </div>
+
+            <div className="cp-condition-grid">
+              <div className={`cp-risk-card ${floodAssessment.level}`}>
+                <div className="cp-risk-card-top">
+                  <span className="cp-risk-tag">
+                    <Waves size={15} />
+                    <span>Drenagem urbana</span>
+                  </span>
+                  <span className={`risk-pill-badge ${floodAssessment.level}`}>
+                    Risco {floodAssessment.score}%
+                  </span>
+                </div>
+
+                <strong>{floodAssessment.label}</strong>
+
+                <div className="urban-index-bar">
+                  <span
+                    style={{
+                      width: `${floodAssessment.score}%`,
+                      backgroundColor: riskAccentColors[floodAssessment.level],
+                    }}
+                  />
+                </div>
+
+                <p>{floodAssessment.advice}</p>
+              </div>
+
+              <div className="cp-metrics-stack">
+                <div className="cp-metric-box">
+                  <div className="cp-metric-head">
+                    <span>Chuva prevista (próximas 6h)</span>
+                    <Droplets size={14} />
+                  </div>
+                  <strong>
+                    {weatherLoading
+                      ? "..."
+                      : `${neighborhoodWeather?.next6HoursTotalMm ?? 0} mm`}
+                  </strong>
+                  <small>
+                    Probabilidade máx.:{" "}
+                    {neighborhoodWeather?.maxNext6HoursProb ?? 0}%
+                  </small>
+                </div>
+
+                <div className="cp-metric-box">
+                  <div className="cp-metric-head">
+                    <span>Clima agora · Regional {currentRegion.regional}</span>
+                    <Thermometer size={14} />
+                  </div>
+                  <strong>
+                    {weatherLoading
+                      ? "..."
+                      : `${neighborhoodWeather?.temperatureC ?? 19}°C`}
+                  </strong>
+                  <small>{currentRegion.soilNote}</small>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* CARD 2: VERIFICADOR DE ROTA */}
+          <section className="panel cp-panel">
+            <div className="panel-header">
+              <div>
+                <span className="panel-eyebrow">
+                  PLANEJAMENTO DE DESLOCAMENTO · CARRO OU ÔNIBUS
+                </span>
+                <h2>Verificar minha rota</h2>
+              </div>
+              <Navigation size={16} color="#244B40" />
+            </div>
+
+            <div className="cp-route-inputs">
+              <label className="occurrence-field">
+                <span>Bairro de saída (Origem)</span>
+                <select
+                  value={originNeighborhood}
+                  onChange={(e) => setOriginNeighborhood(e.target.value)}
+                >
+                  {CURITIBA_NEIGHBORHOODS.map((n) => (
+                    <option key={n.name} value={n.name}>
+                      {n.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <button
+                type="button"
+                className="cp-swap-btn"
+                onClick={handleSwapRoute}
+                title="Inverter origem e destino"
+                aria-label="Inverter origem e destino"
+              >
+                <ArrowLeftRight size={15} />
+              </button>
+
+              <label className="occurrence-field">
+                <span>Bairro de chegada (Destino)</span>
+                <select
+                  value={destinationNeighborhood}
+                  onChange={(e) => setDestinationNeighborhood(e.target.value)}
+                >
+                  {CURITIBA_NEIGHBORHOODS.map((n) => (
+                    <option key={n.name} value={n.name}>
+                      {n.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <div
+              className={`cp-route-banner ${
+                routeCheck.hasFlood
+                  ? "high"
+                  : routeCheck.hasProblems
+                    ? "medium"
+                    : "low"
+              }`}
+            >
+              <div className="cp-route-banner-head">
+                {routeCheck.hasProblems ? (
+                  <AlertTriangle size={17} />
+                ) : (
+                  <ShieldCheck size={17} />
+                )}
+                <strong>
+                  {routeCheck.hasFlood
+                    ? `Alerta de alagamento no trajeto ${originNeighborhood} → ${destinationNeighborhood}`
+                    : routeCheck.hasHighTraffic
+                      ? `Lentidão prevista entre ${originNeighborhood} e ${destinationNeighborhood}`
+                      : `Trajeto livre entre ${originNeighborhood} e ${destinationNeighborhood}`}
+                </strong>
+              </div>
+
+              {routeCheck.routeEvents.length > 0 ? (
+                <div className="cp-route-items">
+                  {routeCheck.routeEvents.slice(0, 3).map((ev) => (
+                    <div key={ev.id} className="cp-route-item">
+                      <div className="cp-route-item-top">
+                        <strong>
+                          {ev.neighborhood} · {ev.conditionLabel}
+                        </strong>
+                        <span className={`risk-pill-badge ${ev.severity}`}>
+                          {ev.time}
+                        </span>
+                      </div>
+                      <p>{ev.description}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="cp-route-clean">
+                  Nenhuma ocorrência de alagamento ou bloqueio ativo neste eixo
+                  no momento.
+                </p>
+              )}
+
+              <div className="cp-gtfs-strip">
+                <span className="cp-gtfs-label">
+                  <Bus size={13} />
+                  <span>
+                    {routeCheck.hasDirectConnection
+                      ? "Linhas que conectam a região:"
+                      : "Principais linhas próximas à saída:"}
+                  </span>
+                </span>
+
+                <div className="risk-transit-chips">
+                  {routeLoading ? (
+                    <span className="smart-routes-empty">
+                      Consultando linhas...
+                    </span>
+                  ) : routeCheck.displayLines.length > 0 ? (
+                    routeCheck.displayLines.map((line) => (
+                      <span key={line.id} className="risk-transit-chip">
+                        <Bus size={11} />
+                        <strong>{line.shortName}</strong>
+                        <span>{line.longName}</span>
+                      </span>
+                    ))
+                  ) : (
+                    <span className="smart-routes-empty">
+                      Consulte o terminal integrado mais próximo.
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
 
-        <div className="citizen-alerts-list">
-          {savedAlerts.length === 0 ? (
-            <div className="citizen-no-alerts">
-              <CloudRain size={15} />
-              <span>
-                Tudo tranquilo! Nenhuma ocorrência ativa nos seus bairros salvos
-                no momento.
-              </span>
-            </div>
-          ) : (
-            savedAlerts.map((alert) => (
-              <div
-                key={alert.id}
-                className={`citizen-alert-banner ${alert.severity}`}
-              >
-                <div>
-                  <strong>
-                    Alerta em {alert.neighborhood} · {alert.conditionLabel}
-                  </strong>
-                  <p>{alert.description}</p>
-                </div>
-                <span className={`risk-pill-badge ${alert.severity}`}>
-                  {alert.time}
+        {/* SIDEBAR DIREITA */}
+        <aside className="cp-sidebar">
+          <section className="panel cp-sidebar-panel">
+            <div className="cp-sidebar-head">
+              <div>
+                <span className="panel-eyebrow">
+                  {savedNeighborhoods.length} BAIRRO(S) MONITORADO(S)
                 </span>
+                <h2>Meus alertas</h2>
               </div>
-            ))
-          )}
-        </div>
-      </section>
+              <BellRing size={16} color="#244B40" />
+            </div>
+
+            <div className="cp-saved-list">
+              <span className="cp-section-label">
+                Bairros salvos (clique para consultar)
+              </span>
+
+              {savedNeighborhoods.length === 0 ? (
+                <p className="cp-empty-note">
+                  Nenhum bairro salvo. Clique em &quot;Salvar bairro&quot; ao
+                  lado para receber alertas.
+                </p>
+              ) : (
+                <div className="cp-saved-pills">
+                  {savedNeighborhoods.map((name) => {
+                    const isViewing = name === selectedNeighborhood;
+                    return (
+                      <div
+                        key={name}
+                        className={`cp-saved-pill ${isViewing ? "active" : ""}`}
+                      >
+                        <button
+                          type="button"
+                          className="cp-saved-pill-btn"
+                          onClick={() => setSelectedNeighborhood(name)}
+                        >
+                          <Bell size={11} />
+                          <span>{name}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="cp-saved-pill-remove"
+                          onClick={() => onToggleSaveNeighborhood(name)}
+                          aria-label={`Remover ${name}`}
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="cp-divider" />
+
+            <div className="cp-alerts-section">
+              <span className="cp-section-label">
+                Avisos ativos ({savedAlerts.length})
+              </span>
+
+              {savedAlerts.length === 0 ? (
+                <div className="cp-all-clear">
+                  <CloudRain size={15} />
+                  <span>
+                    Tudo tranquilo! Nenhuma ocorrência ativa nos seus bairros
+                    salvos.
+                  </span>
+                </div>
+              ) : (
+                <div className="cp-alerts-cards">
+                  {savedAlerts.map((alert) => (
+                    <article
+                      key={alert.id}
+                      className={`cp-alert-card ${alert.severity}`}
+                    >
+                      <div className="cp-alert-card-top">
+                        <strong>{alert.neighborhood}</strong>
+                        <span className={`risk-pill-badge ${alert.severity}`}>
+                          {alert.time}
+                        </span>
+                      </div>
+                      <span className="cp-alert-card-title">
+                        {alert.conditionLabel}
+                      </span>
+                      <p>{alert.description}</p>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="panel cp-sidebar-panel">
+            <div className="cp-sidebar-head">
+              <div>
+                <span className="panel-eyebrow">SERVIÇOS PÚBLICOS</span>
+                <h2>Telefones úteis</h2>
+              </div>
+              <PhoneCall size={15} color="#244B40" />
+            </div>
+
+            <ul className="cp-emergency-list">
+              <li>
+                <strong>156</strong>
+                <span>Prefeitura (alagamentos e queda de árvores)</span>
+              </li>
+              <li>
+                <strong>199</strong>
+                <span>Defesa Civil (áreas de risco e emergências)</span>
+              </li>
+              <li>
+                <strong>193</strong>
+                <span>Corpo de Bombeiros / SIATE</span>
+              </li>
+            </ul>
+          </section>
+        </aside>
+      </div>
     </div>
   );
 }

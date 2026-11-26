@@ -4,6 +4,7 @@ import {
   Bus,
   CarFront,
   CloudRain,
+  Filter,
   Gauge,
   MapPin,
   Route,
@@ -45,6 +46,12 @@ const statusBadgeMap: Record<CorridorStatus, "low" | "medium" | "high"> = {
   normal: "low",
   moderate: "medium",
   critical: "high",
+};
+
+const statusBarColors: Record<CorridorStatus, string> = {
+  normal: "#4E7861",
+  moderate: "#E3962D",
+  critical: "#E12D53",
 };
 
 export function UrbanMobility({ onOpenInMap }: UrbanMobilityProps) {
@@ -103,6 +110,16 @@ export function UrbanMobility({ onOpenInMap }: UrbanMobilityProps) {
   const corridors = useMemo(
     () => evaluateStructuralCorridors(activeEvents, isRaining),
     [activeEvents, isRaining],
+  );
+
+  const statusCounts = useMemo(
+    () => ({
+      all: corridors.length,
+      critical: corridors.filter((c) => c.status === "critical").length,
+      moderate: corridors.filter((c) => c.status === "moderate").length,
+      normal: corridors.filter((c) => c.status === "normal").length,
+    }),
+    [corridors],
   );
 
   // Consulta GTFS para os 4 eventos mais críticos
@@ -178,10 +195,6 @@ export function UrbanMobility({ onOpenInMap }: UrbanMobilityProps) {
       Math.max(25, Math.round((avgSpeed / baseAvg) * 100)),
     );
 
-    const criticalCorridors = corridors.filter(
-      (c) => c.status === "critical",
-    ).length;
-
     const routeSet = new Set<string>();
     let totalStops = 0;
 
@@ -192,12 +205,13 @@ export function UrbanMobility({ onOpenInMap }: UrbanMobilityProps) {
 
     return {
       avgSpeed,
+      baseAvg,
       fluidityPercent,
-      criticalCorridors,
+      criticalCorridors: statusCounts.critical,
       affectedRoutesCount: routeSet.size,
       totalStops,
     };
-  }, [corridors, gtfsByEventId]);
+  }, [corridors, gtfsByEventId, statusCounts.critical]);
 
   const filteredCorridors = useMemo(() => {
     const term = searchQuery.trim().toLowerCase();
@@ -238,6 +252,8 @@ export function UrbanMobility({ onOpenInMap }: UrbanMobilityProps) {
     });
   }
 
+  const hasFilters = searchQuery.trim() !== "" || statusFilter !== "all";
+
   return (
     <div className="mobility-page">
       <section className="page-heading">
@@ -270,7 +286,13 @@ export function UrbanMobility({ onOpenInMap }: UrbanMobilityProps) {
 
       {/* KPIS DE MOBILIDADE */}
       <section className="occurrences-kpis">
-        <article className="panel occurrence-kpi-card">
+        <button
+          type="button"
+          className={`panel occurrence-kpi-card occurrence-kpi-btn ${
+            statusFilter === "all" ? "" : ""
+          }`}
+          onClick={() => setStatusFilter("all")}
+        >
           <div className="occurrence-kpi-top">
             <span>Índice de fluidez viária</span>
             <div className="metric-icon metric-icon-default">
@@ -278,10 +300,20 @@ export function UrbanMobility({ onOpenInMap }: UrbanMobilityProps) {
             </div>
           </div>
           <strong>{metrics.fluidityPercent}%</strong>
-          <small>Velocidade média: {metrics.avgSpeed} km/h nos eixos</small>
-        </article>
+          <small>
+            Média: {metrics.avgSpeed} km/h (ref. {metrics.baseAvg} km/h)
+          </small>
+        </button>
 
-        <article className="panel occurrence-kpi-card">
+        <button
+          type="button"
+          className={`panel occurrence-kpi-card occurrence-kpi-btn ${
+            statusFilter === "critical" ? "is-active" : ""
+          }`}
+          onClick={() =>
+            setStatusFilter(statusFilter === "critical" ? "all" : "critical")
+          }
+        >
           <div className="occurrence-kpi-top">
             <span>Corredores em alerta</span>
             <div className="metric-icon metric-icon-danger">
@@ -290,7 +322,7 @@ export function UrbanMobility({ onOpenInMap }: UrbanMobilityProps) {
           </div>
           <strong>{String(metrics.criticalCorridors).padStart(2, "0")}</strong>
           <small>De {corridors.length} eixos estruturais monitorados</small>
-        </article>
+        </button>
 
         <article className="panel occurrence-kpi-card">
           <div className="occurrence-kpi-top">
@@ -346,10 +378,16 @@ export function UrbanMobility({ onOpenInMap }: UrbanMobilityProps) {
           <div className="filter-pill-group" role="group" aria-label="Status">
             {(
               [
-                { id: "all", label: "Todos os eixos" },
-                { id: "critical", label: "Críticos" },
-                { id: "moderate", label: "Atenção" },
-                { id: "normal", label: "Normais" },
+                { id: "all", label: `Todos (${statusCounts.all})` },
+                {
+                  id: "critical",
+                  label: `Críticos (${statusCounts.critical})`,
+                },
+                {
+                  id: "moderate",
+                  label: `Atenção (${statusCounts.moderate})`,
+                },
+                { id: "normal", label: `Normais (${statusCounts.normal})` },
               ] as const
             ).map((item) => (
               <button
@@ -362,6 +400,20 @@ export function UrbanMobility({ onOpenInMap }: UrbanMobilityProps) {
               </button>
             ))}
           </div>
+
+          {hasFilters && (
+            <button
+              type="button"
+              className="occurrences-reset-filters"
+              onClick={() => {
+                setSearchQuery("");
+                setStatusFilter("all");
+              }}
+            >
+              <Filter size={13} />
+              <span>Limpar</span>
+            </button>
+          )}
         </div>
       </section>
 
@@ -379,55 +431,88 @@ export function UrbanMobility({ onOpenInMap }: UrbanMobilityProps) {
           </span>
         </div>
 
-        <div className="mobility-corridors-grid">
-          {filteredCorridors.map((corridor) => (
-            <article
-              key={corridor.id}
-              className={`mobility-corridor-card ${corridor.status}`}
-            >
-              <div className="mobility-corridor-top">
-                <div>
-                  <strong>{corridor.name}</strong>
-                  <small>{corridor.axis}</small>
-                </div>
-                <span
-                  className={`risk-pill-badge ${statusBadgeMap[corridor.status]}`}
+        {filteredCorridors.length === 0 ? (
+          <div className="smart-routes-empty">
+            Nenhum corredor corresponde aos filtros selecionados.
+          </div>
+        ) : (
+          <div className="mobility-corridors-grid">
+            {filteredCorridors.map((corridor) => {
+              const speedRatio = Math.min(
+                100,
+                Math.max(
+                  15,
+                  Math.round(
+                    (corridor.currentSpeedKmh / corridor.baseSpeedKmh) * 100,
+                  ),
+                ),
+              );
+
+              return (
+                <article
+                  key={corridor.id}
+                  className={`mobility-corridor-card ${corridor.status}`}
                 >
-                  {statusLabels[corridor.status]}
-                </span>
-              </div>
-
-              <div className="mobility-speed-row">
-                <span>
-                  <CarFront size={13} /> Velocidade média:{" "}
-                  <strong>{corridor.currentSpeedKmh} km/h</strong> (ref.{" "}
-                  {corridor.baseSpeedKmh} km/h)
-                </span>
-              </div>
-
-              <p className="mobility-corridor-note">{corridor.impactNote}</p>
-
-              <div className="mobility-corridor-footer">
-                <div className="mobility-lines-chips">
-                  {corridor.mainLines.map((line) => (
-                    <span key={line} className="occurrence-factor-chip">
-                      Linha {line}
+                  <div className="mobility-corridor-top">
+                    <div>
+                      <strong>{corridor.name}</strong>
+                      <small>{corridor.axis}</small>
+                    </div>
+                    <span
+                      className={`risk-pill-badge ${statusBadgeMap[corridor.status]}`}
+                    >
+                      {statusLabels[corridor.status]}
                     </span>
-                  ))}
-                </div>
+                  </div>
 
-                <button
-                  type="button"
-                  className="occurrence-action-btn"
-                  onClick={() => handleOpenCorridorInMap(corridor)}
-                >
-                  <MapPin size={12} />
-                  <span>Mapa</span>
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
+                  <div className="mobility-speed-block">
+                    <div className="mobility-speed-row">
+                      <span>
+                        <CarFront size={13} /> Velocidade média:{" "}
+                        <strong>{corridor.currentSpeedKmh} km/h</strong>
+                      </span>
+                      <small>
+                        ref. {corridor.baseSpeedKmh} km/h ({speedRatio}%)
+                      </small>
+                    </div>
+
+                    <div className="mobility-speed-bar">
+                      <span
+                        style={{
+                          width: `${speedRatio}%`,
+                          backgroundColor: statusBarColors[corridor.status],
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <p className="mobility-corridor-note">
+                    {corridor.impactNote}
+                  </p>
+
+                  <div className="mobility-corridor-footer">
+                    <div className="mobility-lines-chips">
+                      {corridor.mainLines.map((line) => (
+                        <span key={line} className="occurrence-factor-chip">
+                          Linha {line}
+                        </span>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      className="occurrence-action-btn"
+                      onClick={() => handleOpenCorridorInMap(corridor)}
+                    >
+                      <MapPin size={12} />
+                      <span>Ver no mapa</span>
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {/* CRUZAMENTO GTFS POR OCORRÊNCIA CRÍTICA */}
@@ -455,14 +540,23 @@ export function UrbanMobility({ onOpenInMap }: UrbanMobilityProps) {
                     <small>{ev.description}</small>
                   </div>
 
-                  <button
-                    type="button"
-                    className="occurrence-action-btn"
-                    onClick={() => onOpenInMap(ev)}
-                  >
-                    <MapPin size={13} />
-                    <span>Ver ponto</span>
-                  </button>
+                  <div className="mobility-gtfs-head-actions">
+                    {!gtfsLoading && impact && (
+                      <span className="mobility-gtfs-count-badge">
+                        {impact.nearbyStopsCount} paradas ·{" "}
+                        {impact.affectedRoutesCount} linhas
+                      </span>
+                    )}
+
+                    <button
+                      type="button"
+                      className="occurrence-action-btn"
+                      onClick={() => onOpenInMap(ev)}
+                    >
+                      <MapPin size={13} />
+                      <span>Ver ponto</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="risk-transit-chips">

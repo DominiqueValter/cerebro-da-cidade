@@ -2,10 +2,12 @@ import type { UrbanEvent } from "../../features/overview/data/urbanEvents";
 
 export interface AiResolutionPlan {
   summary: string;
+  estimatedResponseWindow: string;
   immediateActions: string[];
   mobilityMitigation: string[];
   agenciesToNotify: string[];
-  estimatedResponseWindow: string;
+  nearbyStopsCount?: number;
+  affectedGtfsRoutes?: string[];
   source: "api" | "heuristic-engine";
 }
 

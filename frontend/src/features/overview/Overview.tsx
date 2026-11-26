@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -10,6 +10,8 @@ import {
   ShieldAlert,
   Navigation,
   Eye,
+  Clock,
+  MapPin,
 } from "lucide-react";
 
 import { CityMap } from "../../components/dashboard/CityMap";
@@ -55,8 +57,6 @@ const severityLabels: Record<UrbanEvent["severity"], string> = {
   high: "Alta",
 };
 
-const recentEvents = urbanEvents.slice(0, 3);
-
 const eventCounts = {
   traffic: urbanEvents.filter((event) => event.category === "traffic").length,
   flood: urbanEvents.filter((event) => event.category === "flood").length,
@@ -66,7 +66,15 @@ const eventCounts = {
 const totalEvents =
   eventCounts.traffic + eventCounts.flood + eventCounts.incident;
 
-function AlertsMetric() {
+interface AlertsMetricProps {
+  selectedCategory: UrbanEventCategory | "all";
+  onSelectCategory: (category: UrbanEventCategory | "all") => void;
+}
+
+function AlertsMetric({
+  selectedCategory,
+  onSelectCategory,
+}: AlertsMetricProps) {
   return (
     <article className="metric-card dashboard-custom-card alerts-summary-card">
       <div className="custom-card-header">
@@ -84,22 +92,30 @@ function AlertsMetric() {
 
       <div className="metric-description">
         <span className="metric-status metric-status-warning" />
-        <span>Eventos em monitoramento</span>
+        <span>Eventos em monitoramento · clique para filtrar</span>
       </div>
 
       <div className="alerts-summary-breakdown">
         {(Object.keys(categoryLabels) as UrbanEventCategory[]).map(
           (category) => {
             const Icon = categoryIcons[category];
+            const isSelected = selectedCategory === category;
 
             return (
-              <div className="alerts-summary-item" key={category}>
+              <button
+                type="button"
+                className={`alerts-summary-item alerts-summary-btn ${
+                  isSelected ? "is-selected" : ""
+                }`}
+                key={category}
+                onClick={() => onSelectCategory(isSelected ? "all" : category)}
+              >
                 <div className="alerts-summary-value-row">
                   <span
                     className="alerts-summary-icon"
                     style={{
                       color: categoryColors[category],
-                      backgroundColor: `${categoryColors[category]}16`,
+                      backgroundColor: `${categoryColors[category]}18`,
                     }}
                   >
                     <Icon size={13} strokeWidth={2} />
@@ -111,14 +127,14 @@ function AlertsMetric() {
                 </div>
 
                 <span>{categoryLabels[category]}</span>
-              </div>
+              </button>
             );
           },
         )}
       </div>
 
       <div className="custom-card-footer">
-        <span>Dados demonstrativos</span>
+        <span>Camada demonstrativa</span>
         <span className="custom-card-footer-dot warning" />
       </div>
     </article>
@@ -199,7 +215,6 @@ function ClimateMetric({ weather, loading, error }: ClimateMetricProps) {
       <div className="custom-card-header">
         <div>
           <span className="metric-title">Condição climática</span>
-
           <div className="custom-card-value">{assessment.riskLevel}</div>
         </div>
 
@@ -322,6 +337,10 @@ export function Overview({ onExploreMap, onViewOccurrences }: OverviewProps) {
   const [weather, setWeather] = useState<CurrentWeather | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
   const [weatherError, setWeatherError] = useState(false);
+  const [lastSync, setLastSync] = useState<string>("--:--");
+  const [selectedCategory, setSelectedCategory] = useState<
+    UrbanEventCategory | "all"
+  >("all");
 
   useEffect(() => {
     let cancelled = false;
@@ -333,6 +352,12 @@ export function Overview({ onExploreMap, onViewOccurrences }: OverviewProps) {
         if (!cancelled) {
           setWeather(data);
           setWeatherError(false);
+          setLastSync(
+            new Date().toLocaleTimeString("pt-BR", {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+          );
         }
       } catch (err) {
         console.error("Erro ao carregar dados meteorológicos:", err);
@@ -357,29 +382,40 @@ export function Overview({ onExploreMap, onViewOccurrences }: OverviewProps) {
     };
   }, []);
 
+  const filteredRecentEvents = useMemo(() => {
+    const base =
+      selectedCategory === "all"
+        ? urbanEvents
+        : urbanEvents.filter((e) => e.category === selectedCategory);
+    return base.slice(0, 4);
+  }, [selectedCategory]);
+
   return (
     <div className="overview">
       <section className="page-heading">
         <div>
           <span className="page-eyebrow">CENTRAL DE INTELIGÊNCIA URBANA</span>
-
           <h1>Visão geral</h1>
-
           <p>
             Acompanhe as condições urbanas e os indicadores de monitoramento de
-            Curitiba.
+            Curitiba em tempo real.
           </p>
         </div>
 
-        <button className="date-button" type="button">
-          <span className="date-button-dot" />
-          <Activity size={15} />
-          <span>Monitoramento atual</span>
-        </button>
+        <div className="heading-status-group">
+          <div className="date-button" aria-label="Status do monitoramento">
+            <span className="date-button-dot" />
+            <Clock size={14} />
+            <span>Atualizado às {lastSync}</span>
+          </div>
+        </div>
       </section>
 
       <section className="metrics-grid">
-        <AlertsMetric />
+        <AlertsMetric
+          selectedCategory={selectedCategory}
+          onSelectCategory={setSelectedCategory}
+        />
 
         <WeatherMetric
           weather={weather}
@@ -401,7 +437,6 @@ export function Overview({ onExploreMap, onViewOccurrences }: OverviewProps) {
           <div className="panel-header">
             <div>
               <span className="panel-eyebrow">VISUALIZAÇÃO GEOGRÁFICA</span>
-
               <h2>Mapa de monitoramento</h2>
             </div>
 
@@ -449,7 +484,7 @@ export function Overview({ onExploreMap, onViewOccurrences }: OverviewProps) {
                 className="legend-dot"
                 style={{ backgroundColor: "#244B40" }}
               />
-              <span>Paradas de transporte</span>
+              <span>Paradas GTFS</span>
             </div>
           </div>
         </article>
@@ -458,15 +493,40 @@ export function Overview({ onExploreMap, onViewOccurrences }: OverviewProps) {
           <div className="panel-header">
             <div>
               <span className="panel-eyebrow">ACOMPANHAMENTO</span>
-
               <h2>Alertas recentes</h2>
             </div>
 
             <span className="panel-demo-badge">Demonstração</span>
           </div>
 
+          <div
+            className="alerts-filter-pills"
+            role="tablist"
+            aria-label="Filtrar alertas por categoria"
+          >
+            <button
+              type="button"
+              className={`alert-pill ${selectedCategory === "all" ? "active" : ""}`}
+              onClick={() => setSelectedCategory("all")}
+            >
+              Todos ({totalEvents})
+            </button>
+            {(Object.keys(categoryLabels) as UrbanEventCategory[]).map(
+              (cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  className={`alert-pill ${selectedCategory === cat ? "active" : ""}`}
+                  onClick={() => setSelectedCategory(cat)}
+                >
+                  {categoryLabels[cat]} ({eventCounts[cat]})
+                </button>
+              ),
+            )}
+          </div>
+
           <div className="alerts-list">
-            {recentEvents.map((event) => {
+            {filteredRecentEvents.map((event) => {
               const Icon = categoryIcons[event.category];
               const color = categoryColors[event.category];
 
@@ -478,10 +538,10 @@ export function Overview({ onExploreMap, onViewOccurrences }: OverviewProps) {
                         className="alert-item-icon"
                         style={{
                           color,
-                          backgroundColor: `${color}15`,
+                          backgroundColor: `${color}16`,
                         }}
                       >
-                        <Icon size={15} strokeWidth={1.9} />
+                        <Icon size={14} strokeWidth={2} />
                       </span>
 
                       <span>{categoryLabels[event.category]}</span>
@@ -499,7 +559,8 @@ export function Overview({ onExploreMap, onViewOccurrences }: OverviewProps) {
 
                   <div className="alert-item-meta">
                     <span>Registro #{String(event.id).padStart(2, "0")}</span>
-                    <span>
+                    <span className="alert-coords">
+                      <MapPin size={11} />
                       {event.latitude.toFixed(4)}, {event.longitude.toFixed(4)}
                     </span>
                   </div>
@@ -521,7 +582,7 @@ export function Overview({ onExploreMap, onViewOccurrences }: OverviewProps) {
         </article>
       </section>
 
-      <section className="panel activity-panel">
+      <section className="panel activity-panel methodology-compact">
         <div className="panel-header">
           <div>
             <span className="panel-eyebrow">TRANSPARÊNCIA METODOLÓGICA</span>
@@ -537,8 +598,7 @@ export function Overview({ onExploreMap, onViewOccurrences }: OverviewProps) {
             </div>
             <p>
               Meteorologia em tempo real (Open-Meteo), malha municipal de
-              Curitiba (IBGE) e paradas/linhas do transporte coletivo (feed GTFS
-              comunitário).
+              Curitiba (IBGE) e paradas/linhas do transporte coletivo (GTFS).
             </p>
           </div>
 
@@ -548,9 +608,9 @@ export function Overview({ onExploreMap, onViewOccurrences }: OverviewProps) {
               <strong>Indicadores calculados</strong>
             </div>
             <p>
-              Risco climático derivado de precipitação, vento e código WMO;
-              Índice Urbano composto por Clima (30%), Drenagem (30%), Mobilidade
-              (25%) e Ocorrências (15%).
+              Risco climático derivado de chuva, vento e código WMO; Índice
+              Urbano composto por Clima (30%), Drenagem (30%), Mobilidade (25%)
+              e Ocorrências (15%).
             </p>
           </div>
 
@@ -560,9 +620,8 @@ export function Overview({ onExploreMap, onViewOccurrences }: OverviewProps) {
               <strong>Camada demonstrativa</strong>
             </div>
             <p>
-              Os {totalEvents} eventos urbanos georreferenciados no mapa e nos
-              alertas simulam registros operacionais até a conexão com fontes
-              oficiais de ocorrências.
+              Os {totalEvents} eventos urbanos georreferenciados simulam
+              registros operacionais até a integração com bases oficiais.
             </p>
           </div>
         </div>

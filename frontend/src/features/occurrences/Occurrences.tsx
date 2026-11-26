@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Bus,
   CarFront,
+  Check,
   CheckCircle2,
   Clock,
   CloudRain,
+  Copy,
   Filter,
   MapPin,
   Plus,
@@ -137,17 +140,43 @@ export function Occurrences({ onOpenInMap }: OccurrencesProps) {
   const [description, setDescription] = useState("");
 
   // Assistente operacional IA
+  const aiPanelRef = useRef<HTMLElement | null>(null);
   const [aiTargetEvent, setAiTargetEvent] = useState<UrbanEvent | null>(null);
   const [aiPlan, setAiPlan] = useState<AiResolutionPlan | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [copiedPlan, setCopiedPlan] = useState(false);
 
   async function handleAskAiForIdeas(event: UrbanEvent) {
     setAiTargetEvent(event);
     setAiPlan(null);
     setAiLoading(true);
+    setCopiedPlan(false);
+
+    requestAnimationFrame(() => {
+      aiPanelRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    });
+
     const result = await generateOccurrenceAiIdeas(event);
     setAiPlan(result);
     setAiLoading(false);
+  }
+
+  function handleCopyAiPlan() {
+    if (!aiTargetEvent || !aiPlan) return;
+    const text = [
+      `PROTOCOLO CCO CURITIBA — ${aiTargetEvent.neighborhood} (${aiTargetEvent.conditionLabel})`,
+      `Diagnóstico: ${aiPlan.summary} | Janela estimada: ${aiPlan.estimatedResponseWindow}`,
+      `\n1. Ações imediatas:\n${aiPlan.immediateActions.map((a) => `- ${a}`).join("\n")}`,
+      `\n2. Mitigação de mobilidade:\n${aiPlan.mobilityMitigation.map((m) => `- ${m}`).join("\n")}`,
+      `\n3. Órgãos acionados: ${aiPlan.agenciesToNotify.join(", ")}`,
+    ].join("\n");
+
+    navigator.clipboard?.writeText(text);
+    setCopiedPlan(true);
+    window.setTimeout(() => setCopiedPlan(false), 2200);
   }
 
   useEffect(() => {
@@ -289,8 +318,8 @@ export function Occurrences({ onOpenInMap }: OccurrencesProps) {
           </span>
           <h1>Ocorrências</h1>
           <p>
-            O sistema cruza previsão horária (Open-Meteo), horários de pico e
-            drenagem por bairro para antecipar riscos antes que aconteçam.
+            Cruza previsão horária (Open-Meteo), horários de pico e drenagem por
+            bairro para antecipar riscos antes que aconteçam.
           </p>
         </div>
 
@@ -416,9 +445,19 @@ export function Occurrences({ onOpenInMap }: OccurrencesProps) {
         </form>
       )}
 
-      {/* CARDS DE RESUMO */}
+      {/* CARDS DE RESUMO INTERATIVOS (CLIQUE PARA FILTRAR) */}
       <section className="occurrences-kpis">
-        <article className="panel occurrence-kpi-card">
+        <button
+          type="button"
+          className={`panel occurrence-kpi-card occurrence-kpi-btn ${
+            statusFilter === "predictive" ? "is-active" : ""
+          }`}
+          onClick={() =>
+            setStatusFilter(
+              statusFilter === "predictive" ? "all" : "predictive",
+            )
+          }
+        >
           <div className="occurrence-kpi-top">
             <span>Alertas preditivos (IA)</span>
             <div className="metric-icon metric-icon-default">
@@ -428,12 +467,20 @@ export function Occurrences({ onOpenInMap }: OccurrencesProps) {
           <strong>{String(stats.predictiveTotal).padStart(2, "0")}</strong>
           <small>
             {simulateStorm
-              ? "Cenário simulado (chuva às 16h–17h)"
-              : "Gerados automaticamente via Open-Meteo"}
+              ? "Cenário simulado (chuva 16h–17h)"
+              : "Gerados via Open-Meteo"}
           </small>
-        </article>
+        </button>
 
-        <article className="panel occurrence-kpi-card">
+        <button
+          type="button"
+          className={`panel occurrence-kpi-card occurrence-kpi-btn ${
+            severityFilter === "high" ? "is-active" : ""
+          }`}
+          onClick={() =>
+            setSeverityFilter(severityFilter === "high" ? "all" : "high")
+          }
+        >
           <div className="occurrence-kpi-top">
             <span>Risco alto</span>
             <div className="metric-icon metric-icon-danger">
@@ -442,9 +489,17 @@ export function Occurrences({ onOpenInMap }: OccurrencesProps) {
           </div>
           <strong>{String(stats.highRisk).padStart(2, "0")}</strong>
           <small>Prioridade preventiva e viária</small>
-        </article>
+        </button>
 
-        <article className="panel occurrence-kpi-card">
+        <button
+          type="button"
+          className={`panel occurrence-kpi-card occurrence-kpi-btn ${
+            categoryFilter === "traffic" ? "is-active" : ""
+          }`}
+          onClick={() =>
+            setCategoryFilter(categoryFilter === "traffic" ? "all" : "traffic")
+          }
+        >
           <div className="occurrence-kpi-top">
             <span>Trânsito</span>
             <div className="metric-icon metric-icon-warning">
@@ -453,9 +508,17 @@ export function Occurrences({ onOpenInMap }: OccurrencesProps) {
           </div>
           <strong>{String(stats.traffic).padStart(2, "0")}</strong>
           <small>Corredores e horários de pico</small>
-        </article>
+        </button>
 
-        <article className="panel occurrence-kpi-card">
+        <button
+          type="button"
+          className={`panel occurrence-kpi-card occurrence-kpi-btn ${
+            categoryFilter === "flood" ? "is-active" : ""
+          }`}
+          onClick={() =>
+            setCategoryFilter(categoryFilter === "flood" ? "all" : "flood")
+          }
+        >
           <div className="occurrence-kpi-top">
             <span>Alagamentos / Drenagem</span>
             <div className="metric-icon metric-icon-default">
@@ -464,7 +527,7 @@ export function Occurrences({ onOpenInMap }: OccurrencesProps) {
           </div>
           <strong>{String(stats.flood).padStart(2, "0")}</strong>
           <small>Regiões com baixa permeabilidade</small>
-        </article>
+        </button>
       </section>
 
       {/* BARRA DE FILTROS */}
@@ -493,7 +556,7 @@ export function Occurrences({ onOpenInMap }: OccurrencesProps) {
             {(
               [
                 { id: "all", label: "Todas" },
-                { id: "predictive", label: "Preditivas (Auto)" },
+                { id: "predictive", label: "Preditivas" },
                 { id: "active", label: "Ativas" },
                 { id: "resolved", label: "Resolvidas" },
               ] as const
@@ -537,9 +600,9 @@ export function Occurrences({ onOpenInMap }: OccurrencesProps) {
             {(
               [
                 { id: "all", label: "Todos riscos" },
-                { id: "high", label: "Risco Alto" },
-                { id: "medium", label: "Risco Médio" },
-                { id: "low", label: "Risco Baixo" },
+                { id: "high", label: "Alto" },
+                { id: "medium", label: "Médio" },
+                { id: "low", label: "Baixo" },
               ] as const
             ).map((item) => (
               <button
@@ -558,7 +621,7 @@ export function Occurrences({ onOpenInMap }: OccurrencesProps) {
               type="button"
               className="occurrences-reset-filters"
               onClick={clearFilters}
-              title="Limpar filtros"
+              title="Limpar todos os filtros"
             >
               <Filter size={13} />
               <span>Limpar</span>
@@ -569,40 +632,72 @@ export function Occurrences({ onOpenInMap }: OccurrencesProps) {
 
       {/* PAINEL DE SUGESTÕES DE RESOLUÇÃO (IA) */}
       {aiTargetEvent && (
-        <section className="panel ai-advisor-panel">
+        <section ref={aiPanelRef} className="panel ai-advisor-panel">
           <div className="panel-header">
             <div>
               <span className="panel-eyebrow">
                 ASSISTENTE OPERACIONAL IA ·{" "}
                 {aiTargetEvent.neighborhood.toUpperCase()}
               </span>
-              <h2>Ideias de resolução: {aiTargetEvent.conditionLabel}</h2>
+              <h2>Protocolo sugerido: {aiTargetEvent.conditionLabel}</h2>
             </div>
 
-            <button
-              type="button"
-              className="occurrence-action-btn"
-              onClick={() => setAiTargetEvent(null)}
-            >
-              <X size={13} />
-              <span>Fechar</span>
-            </button>
+            <div className="ai-advisor-header-actions">
+              {aiPlan && (
+                <button
+                  type="button"
+                  className="occurrence-action-btn"
+                  onClick={handleCopyAiPlan}
+                >
+                  {copiedPlan ? <Check size={13} /> : <Copy size={13} />}
+                  <span>{copiedPlan ? "Copiado" : "Copiar plano"}</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                className="occurrence-action-btn"
+                onClick={() => setAiTargetEvent(null)}
+              >
+                <X size={13} />
+                <span>Fechar</span>
+              </button>
+            </div>
           </div>
 
           {aiLoading ? (
-            <p className="ai-advisor-summary">
-              Analisando cenário urbano, mobilidade e protocolos de resposta...
-            </p>
+            <div className="ai-advisor-loading">
+              <Sparkles size={15} />
+              <span>
+                Cruzando dados meteorológicos, malha viária e linhas GTFS em
+                500m...
+              </span>
+            </div>
           ) : (
             aiPlan && (
               <div className="ai-advisor-content">
-                <p className="ai-advisor-summary">
-                  <strong>Diagnóstico:</strong> {aiPlan.summary} (Tempo
-                  estimado: <strong>{aiPlan.estimatedResponseWindow}</strong>)
-                </p>
+                <div className="ai-advisor-summary-box">
+                  <p className="ai-advisor-summary">
+                    <strong>Diagnóstico:</strong> {aiPlan.summary}
+                  </p>
+
+                  <div className="ai-advisor-badges">
+                    <span className="ai-window-badge">
+                      <Clock size={12} />
+                      Janela: {aiPlan.estimatedResponseWindow}
+                    </span>
+
+                    {typeof aiPlan.nearbyStopsCount === "number" && (
+                      <span className="ai-gtfs-badge">
+                        <Bus size={12} />
+                        {aiPlan.nearbyStopsCount} paradas GTFS no raio
+                      </span>
+                    )}
+                  </div>
+                </div>
 
                 <div className="ai-advisor-columns">
-                  <div>
+                  <div className="ai-advisor-card">
                     <h4>1. Ações imediatas</h4>
                     <ul>
                       {aiPlan.immediateActions.map((item) => (
@@ -611,7 +706,7 @@ export function Occurrences({ onOpenInMap }: OccurrencesProps) {
                     </ul>
                   </div>
 
-                  <div>
+                  <div className="ai-advisor-card">
                     <h4>2. Mitigação de mobilidade</h4>
                     <ul>
                       {aiPlan.mobilityMitigation.map((item) => (
@@ -620,7 +715,7 @@ export function Occurrences({ onOpenInMap }: OccurrencesProps) {
                     </ul>
                   </div>
 
-                  <div>
+                  <div className="ai-advisor-card">
                     <h4>3. Órgãos para acionar</h4>
                     <ul>
                       {aiPlan.agenciesToNotify.map((agency) => (
@@ -629,6 +724,20 @@ export function Occurrences({ onOpenInMap }: OccurrencesProps) {
                     </ul>
                   </div>
                 </div>
+
+                {aiPlan.affectedGtfsRoutes &&
+                  aiPlan.affectedGtfsRoutes.length > 0 && (
+                    <div className="ai-affected-routes-strip">
+                      <span>Linhas GTFS mapeadas no perímetro:</span>
+                      <div className="ai-routes-chips">
+                        {aiPlan.affectedGtfsRoutes.map((routeLabel: string) => (
+                          <span key={routeLabel} className="ai-route-chip">
+                            {routeLabel}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
               </div>
             )
           )}
