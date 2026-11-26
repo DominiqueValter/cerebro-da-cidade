@@ -21,9 +21,9 @@ export interface AuthUser {
 }
 
 interface LoginScreenProps {
-  onLogin?: (user: AuthUser, token?: string) => void;
-  onSuccess?: (user: AuthUser, token?: string) => void;
-  onAuthenticated?: (user: AuthUser, token?: string) => void;
+  onLogin?: (user: AuthUser, token: string) => void;
+  onSuccess?: (user: AuthUser, token: string) => void;
+  onAuthenticated?: (user: AuthUser, token: string) => void;
 }
 
 type AuthStep = "select-profile" | "credentials";

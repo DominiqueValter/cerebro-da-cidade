@@ -18,6 +18,9 @@ export type NavSection =
   | "mobility";
 
 interface SidebarProps {
+  open?: boolean;
+  isOpen?: boolean;
+  mobileOpen?: boolean;
   activeTab?: string;
   currentView?: string;
   activePage?: string;
@@ -30,8 +33,6 @@ interface SidebarProps {
   onNavigate?: (tab: NavSection) => void;
   onChangeTab?: (tab: NavSection) => void;
   onSelect?: (tab: NavSection) => void;
-  isOpen?: boolean;
-  mobileOpen?: boolean;
   onClose?: () => void;
   userName?: string;
   userRole?: string;
@@ -85,6 +86,7 @@ export function Sidebar(props: SidebarProps) {
     onNavigate,
     onChangeTab,
     onSelect,
+    open,
     isOpen,
     mobileOpen,
     onClose,
@@ -104,7 +106,7 @@ export function Sidebar(props: SidebarProps) {
 
   const [internalActive, setInternalActive] = useState<string>("overview");
   const current = externalActive ?? internalActive;
-  const drawerOpen = Boolean(isOpen ?? mobileOpen);
+  const drawerOpen = Boolean(open ?? isOpen ?? mobileOpen);
 
   useEffect(() => {
     if (externalActive) {
