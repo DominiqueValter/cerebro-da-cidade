@@ -28,7 +28,7 @@ interface LoginScreenProps {
 
 type AuthStep = "select-profile" | "credentials";
 
-const API_BASE = "http://localhost:3000";
+const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
 const CURITIBA_BG_URL =
   "https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?auto=format&fit=crop&w=1920&q=80";
