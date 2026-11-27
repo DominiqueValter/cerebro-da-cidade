@@ -60,7 +60,11 @@ interface TransitRoutesResponse {
   routes: TransitRoute[];
 }
 
-const API_BASE_URL = "http://localhost:3000/api/mobility";
+const SERVER_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:3000"
+).replace(/\/$/, "");
+
+const API_BASE_URL = `${SERVER_URL}/api/mobility`;
 
 export async function getTransitStops(): Promise<TransitStop[]> {
   const response = await fetch(`${API_BASE_URL}/stops`);
@@ -120,7 +124,7 @@ export async function getNearbyTransitImpact(
 }
 
 export async function getCuritibaNeighborhoods(): Promise<GeoJSON.FeatureCollection> {
-  const response = await fetch("http://localhost:3000/api/geo/neighborhoods");
+  const response = await fetch(`${SERVER_URL}/api/geo/neighborhoods`);
 
   if (!response.ok) {
     throw new Error("Não foi possível carregar os bairros de Curitiba.");

@@ -92,7 +92,10 @@ export async function generateOccurrenceAiIdeas(
   event: UrbanEvent,
 ): Promise<AiResolutionPlan> {
   try {
-    const response = await fetch("/api/ai/occurrence-plan", {
+    const SERVER_URL = (
+      import.meta.env.VITE_API_URL || "http://localhost:3000"
+    ).replace(/\/$/, "");
+    const response = await fetch(`${SERVER_URL}/api/ai/occurrence-plan`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(event),
